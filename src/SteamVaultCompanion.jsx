@@ -115,9 +115,23 @@ export default function SteamVaultCompanion() {
 
   // Countdown sampai slot jam tertua expire (sliding window)
   const oldestHourly = hourlyRuns.length > 0 ? Math.min(...hourlyRuns.map(r => r.id)) : null;
-  const nextSlotMs = hourlyCapped && oldestHourly ? Math.max(0, oldestHourly + HOUR_MS - now) : 0;
+  const nextSlotMs = oldestHourly ? Math.max(0, oldestHourly + HOUR_MS - now) : 0;
   const nextSlotSec = Math.ceil(nextSlotMs / 1000);
   const fmtSlot = s => `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
+
+  const getDailyResetTimeSec = () => {
+    const d = new Date();
+    const midnight = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, 0, 0, 0);
+    return Math.ceil((midnight.getTime() - d.getTime()) / 1000);
+  };
+  const dailyResetSec = getDailyResetTimeSec();
+  const fmtDailyReset = s => {
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = s % 60;
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+  };
+
 
   useEffect(() => {
     try { localStorage.setItem("sv_runs", JSON.stringify(runs)); } catch {}
@@ -330,8 +344,8 @@ export default function SteamVaultCompanion() {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10 }}>
               {[
                 { label: "Run Jam Ini", value: hourlyRuns.length, sub: `dari ${HOURLY_CAP} / jam`, color: hourlyCapped ? "#ff8400" : "#00ffd2" },
-                { label: "Sisa Jam Ini", value: remainingHourly, sub: hourlyCapped ? fmtSlot(nextSlotSec) + " buka" : "slot tersisa", color: hourlyCapped ? "#ff8400" : "#3dffa3" },
-                { label: "Run Hari Ini", value: todayRuns.length, sub: `dari ${DAILY_CAP} / hari`, color: dailyCapped ? "#ff8400" : "#6b93a3" },
+                { label: "Sisa Jam Ini", value: remainingHourly, sub: oldestHourly ? `Next: ${fmtSlot(nextSlotSec)}` : "Semua slot ready", color: hourlyCapped ? "#ff8400" : "#3dffa3" },
+                { label: "Run Hari Ini", value: todayRuns.length, sub: `Reset: ${fmtDailyReset(dailyResetSec)}`, color: dailyCapped ? "#ff8400" : "#6b93a3" },
                 { label: "Total Lifetime", value: totalRuns, sub: "semua run", color: "#6b93a3" },
               ].map((s, i) => (
                 <div key={i} style={{ background: "#0a1b24", border: "1px solid #183e52", borderRadius: 10, padding: "12px 14px" }}>
@@ -355,8 +369,8 @@ export default function SteamVaultCompanion() {
                     <div key={i} style={{ flex: 1, height: 22, borderRadius: 4, background: filled ? "#00ffd2" : "#0d2733", transition: "background 0.3s", boxShadow: filled ? "0 0 6px #00ffd255" : "none" }} />
                   ))}
                 </div>
-                {hourlyCapped && (
-                  <div style={{ fontSize: 11, color: "#ff8400", marginTop: 7, display: "flex", alignItems: "center", gap: 6 }}>
+                {oldestHourly && (
+                  <div style={{ fontSize: 11, color: hourlyCapped ? "#ff8400" : "#00ffd2", marginTop: 7, display: "flex", alignItems: "center", gap: 6 }}>
                     <span className="pulse">⏳</span>
                     Slot berikutnya terbuka dalam <span style={{ fontFamily: "'JetBrains Mono'", fontWeight: 600, marginLeft: 4 }}>{fmtSlot(nextSlotSec)}</span>
                   </div>
@@ -373,9 +387,14 @@ export default function SteamVaultCompanion() {
                     <div key={i} style={{ width: "calc(10% - 3px)", height: 14, borderRadius: 3, background: filled ? (i >= 25 ? "#ff8400" : "#3dffa366") : "#0d2733", transition: "background 0.3s" }} />
                   ))}
                 </div>
-                {dailyCapped && <div style={{ fontSize: 11, color: "#ff8400", marginTop: 7, textAlign: "center" }}>⚠ Cap harian 30 tercapai! Reset besok pagi.</div>}
+                {dailyCapped && <div style={{ fontSize: 11, color: "#ff8400", marginTop: 7, textAlign: "center", fontWeight: 600 }}>⚠ Cap harian 30 tercapai!</div>}
+                <div style={{ fontSize: 11, color: "#6b93a3", marginTop: 7, display: "flex", alignItems: "center", gap: 6 }}>
+                  <span className="pulse">📅</span>
+                  Reset harian dalam <span style={{ fontFamily: "'JetBrains Mono'", fontWeight: 600, marginLeft: 4, color: "#e2eff2" }}>{fmtDailyReset(dailyResetSec)}</span>
+                </div>
               </div>
             </div>
+
 
             {/* Action buttons */}
             <div style={{ display: "flex", gap: 10 }}>
