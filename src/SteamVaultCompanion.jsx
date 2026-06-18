@@ -327,12 +327,19 @@ export default function SteamVaultCompanion() {
           <div style={{ fontSize: 15, fontWeight: 600, color: "#E2E8F0", letterSpacing: "0.02em" }}>Steam Vault Companion</div>
           <div style={{ fontSize: 11, color: "#8B9BB4" }}>Coilfang Reservoir · Solo Farming Tracker</div>
         </div>
-        <div style={{ marginLeft: "auto", display: "flex", gap: 4 }}>
-          <button className={`tab ${activeTab === "tracker" ? "active" : ""}`} onClick={() => setActiveTab("tracker")}>⚔ Tracker</button>
-          <button className={`tab ${activeTab === "chat" ? "active" : ""}`} onClick={() => setActiveTab("chat")}>
-            💬 Chat AI {loading && <span className="pulse" style={{ marginLeft: 4 }}>●</span>}
-          </button>
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ fontSize: 11, color: "#2EA8FF", background: "#1C2333", border: "1px solid #2EA8FF33", borderRadius: 6, padding: "5px 10px", fontFamily: "'JetBrains Mono', monospace", display: "flex", alignItems: "center", gap: 6, userSelect: "none" }}>
+            <span style={{ color: "#4FFFB0" }}>🕒</span>
+            <span>{new Date().toLocaleDateString("id-ID", { weekday: 'short', day: '2-digit', month: 'short' })} · {new Date().toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+          </div>
+          <div style={{ display: "flex", gap: 4 }}>
+            <button className={`tab ${activeTab === "tracker" ? "active" : ""}`} onClick={() => setActiveTab("tracker")}>⚔ Tracker</button>
+            <button className={`tab ${activeTab === "chat" ? "active" : ""}`} onClick={() => setActiveTab("chat")}>
+              💬 Chat AI {loading && <span className="pulse" style={{ marginLeft: 4 }}>●</span>}
+            </button>
+          </div>
         </div>
+
       </div>
 
       {/* Tip bar */}
