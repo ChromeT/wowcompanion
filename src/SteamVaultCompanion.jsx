@@ -339,8 +339,8 @@ export default function SteamVaultCompanion() {
         .btn-success { background: #3dffa322; color: #3dffa3; border: 1px solid #3dffa344; padding: 10px 24px; }
         .btn-success:hover { background: #3dffa333; }
         .tab { cursor: pointer; padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; border: none; background: transparent; color: #6b93a3; transition: all 0.15s; }
-        .widget-action { padding: 4px 6px; border-radius: 4px; transition: background 0.1s; margin-bottom: 2px; }
-        .widget-action:hover { background: rgba(197, 164, 91, 0.15); }
+        .widget-action { padding: 6px 8px; border-radius: 6px; transition: all 0.15s; margin-bottom: 2px; }
+        .widget-action:hover { background: #0d2733; color: #00ffd2 !important; }
         .tab.active { background: #0d2733; color: #00ffd2; }
         .tab:hover:not(.active) { color: #e2eff2; }
         textarea { resize: none; outline: none; font-family: inherit; }
@@ -392,45 +392,50 @@ export default function SteamVaultCompanion() {
           <div style={{ flex: 1, padding: 20, overflowY: "auto" }}>
             <div style={{ display: "flex", gap: 20, flexWrap: "wrap", alignItems: "flex-start" }}>
               
-              {/* LEFT COLUMN: Nova Instance Tracker Tooltip Widget */}
-              <div style={{ flex: "1 1 360px", maxWidth: "460px", background: "#000000", border: "1px solid #c5a45b", borderRadius: 4, padding: "14px 16px", boxShadow: "0 8px 32px rgba(0,0,0,0.8)", fontFamily: "system-ui, sans-serif" }}>
-                {/* Widget Header */}
-                <div style={{ display: "flex", alignItems: "center", gap: 8, borderBottom: "1px solid rgba(197, 164, 91, 0.25)", paddingBottom: 6, marginBottom: 8 }}>
-                  <span style={{ color: "#ffd100", fontSize: 13, fontWeight: "bold", letterSpacing: "0.02em" }}>Nova Instance Tracker</span>
+              {/* LEFT COLUMN: Live Lockouts Monitor Panel (aligned with website theme) */}
+              <div style={{ flex: "1 1 360px", maxWidth: "460px", background: "#0a1b24", border: "1px solid #183e52", borderRadius: 10, padding: "16px", boxShadow: "0 8px 32px rgba(0,0,0,0.4)" }}>
+                {/* Header */}
+                <div style={{ display: "flex", alignItems: "center", gap: 8, borderBottom: "1px solid #183e52", paddingBottom: 8, marginBottom: 12 }}>
+                  <span style={{ color: "#00ffd2", fontSize: 13, fontWeight: 600, letterSpacing: "0.02em" }}>⚔ Live Lockouts Monitor</span>
                   <span className="pulse" style={{ width: 6, height: 6, borderRadius: "50%", background: "#3dffa3", marginLeft: "auto", boxShadow: "0 0 6px #3dffa3" }} />
                 </div>
 
-                {/* Widget Body */}
+                {/* Body */}
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  <div style={{ color: "#ffd100", fontSize: 12 }}>
-                    <span style={{ color: "#ff4500", fontFamily: "'JetBrains Mono', monospace", fontWeight: "bold" }}>{hourlyRuns.length}</span> instances in the past hour.
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, borderBottom: "1px solid #183e5233", paddingBottom: 6 }}>
+                    <span style={{ color: "#6b93a3" }}>Run Jam Ini (Rolling):</span>
+                    <span style={{ color: hourlyCapped ? "#ff8400" : "#3dffa3", fontFamily: "'JetBrains Mono', monospace", fontWeight: "bold" }}>{hourlyRuns.length} / {HOURLY_CAP}</span>
                   </div>
-                  <div style={{ color: "#ffd100", fontSize: 12 }}>
-                    <span style={{ color: "#ff4500", fontFamily: "'JetBrains Mono', monospace", fontWeight: "bold" }}>{dailyRuns.length}</span> instances in the past 24h.
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, borderBottom: "1px solid #183e5233", paddingBottom: 6 }}>
+                    <span style={{ color: "#6b93a3" }}>Run 24 Jam Ini (Rolling):</span>
+                    <span style={{ color: dailyCapped ? "#ff8400" : "#3dffa3", fontFamily: "'JetBrains Mono', monospace", fontWeight: "bold" }}>{dailyRuns.length} / {DAILY_CAP}</span>
                   </div>
-                  <div style={{ color: "#ffd100", fontSize: 12, marginBottom: 4 }}>
-                    Next instance available in <span style={{ color: "#ffd100", fontWeight: "bold", fontFamily: "'JetBrains Mono', monospace" }}>{fmtDurationText(nextSlotSec)}</span>.
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, borderBottom: "1px solid #183e5233", paddingBottom: 6 }}>
+                    <span style={{ color: "#6b93a3" }}>Next Dungeon Slot:</span>
+                    <span style={{ color: "#00ffd2", fontWeight: "bold", fontFamily: "'JetBrains Mono', monospace" }}>{fmtDurationText(nextSlotSec)}</span>
                   </div>
 
-                  {/* Lockouts */}
+                  {/* Lockouts list */}
                   {showLockoutsDetail && (
-                    <div style={{ marginTop: 4, display: "flex", flexDirection: "column", gap: 4 }}>
-                      <div style={{ color: "#ffd100", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: "1px dashed rgba(197, 164, 91, 0.15)", paddingBottom: 2, marginBottom: 4 }}>
-                        Current Hour Lockouts:
+                    <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
+                      <div style={{ color: "#00ffd2", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: "1px dashed rgba(24, 62, 82, 0.4)", paddingBottom: 2, marginBottom: 4 }}>
+                        Detail Lockout Aktif:
                       </div>
                       
                       {hourlyRuns.length === 0 ? (
-                        <div style={{ color: "#6b93a3", fontSize: 11, fontStyle: "italic", padding: "4px 0" }}>No active lockouts in the past hour.</div>
+                        <div style={{ color: "#6b93a3", fontSize: 11, fontStyle: "italic", padding: "4px 0" }}>Belum ada lockout aktif jam ini.</div>
                       ) : (
                         [...hourlyRuns].reverse().map((r) => {
                           const timeLeftSec = Math.ceil(Math.max(0, (r.id + HOUR_MS - now) / 1000));
                           const m = Math.floor(timeLeftSec / 60);
                           const s = timeLeftSec % 60;
-                          const timeStr = m > 0 ? `${m} mins ${s} secs` : `${s} secs`;
+                          const timeStr = m > 0 ? `${m}m ${s}s` : `${s}s`;
                           return (
-                            <div key={r.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#9dcae1", padding: "1px 0" }}>
-                              <span>Coilfang: The Steamvault</span>
-                              <span style={{ fontFamily: "monospace", color: "#b0c4de" }}>({timeStr} left on lockout)</span>
+                            <div key={r.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#e2eff2", padding: "1px 0" }}>
+                              <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                                <span style={{ color: "#00ffd2" }}>•</span> Steamvault Run
+                              </span>
+                              <span style={{ fontFamily: "'JetBrains Mono', monospace", color: "#ff8400" }}>({timeStr} tersisa)</span>
                             </div>
                           );
                         })
@@ -440,43 +445,49 @@ export default function SteamVaultCompanion() {
 
                   {/* Character panel */}
                   {showCharPanel && (
-                    <div style={{ background: "#0a0a0a", border: "1px solid #c5a45b", padding: 8, borderRadius: 4, marginTop: 8 }}>
-                      <div style={{ fontSize: 11, color: "#ffd100", fontWeight: "bold", marginBottom: 6, display: "flex", justifyContent: "space-between" }}>
-                        <span>Characters:</span>
-                        <span style={{ cursor: "pointer", color: "#ff4500" }} onClick={() => setShowCharPanel(false)}>✕</span>
+                    <div style={{ background: "#0d2733", border: "1px solid #183e52", padding: 10, borderRadius: 6, marginTop: 10 }}>
+                      <div style={{ fontSize: 11, color: "#00ffd2", fontWeight: "bold", marginBottom: 6, display: "flex", justifyContent: "space-between" }}>
+                        <span>Karakter Aktif TBC:</span>
+                        <span style={{ cursor: "pointer", color: "#ff8400" }} onClick={() => setShowCharPanel(false)}>✕</span>
                       </div>
                       {[
                         { name: "ChromeT (Mage)", level: 70, runs: hourlyRuns.length },
                         { name: "SteamFarmer (Druid)", level: 70, runs: 0 },
                         { name: "CoilfangAlt (Priest)", level: 68, runs: 0 }
                       ].map((c, idx) => (
-                        <div key={idx} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#ffffff", padding: "3px 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                        <div key={idx} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#e2eff2", padding: "4px 0", borderBottom: "1px solid rgba(24, 62, 82, 0.2)" }}>
                           <span>{c.name} - Lvl {c.level}</span>
-                          <span style={{ color: "#ff4500", fontFamily: "monospace" }}>{c.runs} runs</span>
+                          <span style={{ color: "#3dffa3", fontFamily: "monospace" }}>{c.runs} run</span>
                         </div>
                       ))}
                     </div>
                   )}
 
-                  {/* Mouse interaction footer */}
-                  <div style={{ display: "flex", flexDirection: "column", gap: 2, marginTop: 8, borderTop: "1px solid rgba(197, 164, 91, 0.15)", paddingTop: 8 }}>
-                    <div onClick={handleWidgetLeftClick} className="widget-action" style={{ color: "#c5a45b", cursor: "pointer", fontSize: 11 }}>
-                      Left-Click: <span style={{ color: "#d9e2ec" }}>Open Instance Frame</span>
+                  {/* Actions list */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 2, marginTop: 8, borderTop: "1px solid #183e52", paddingTop: 8 }}>
+                    <div onClick={handleWidgetLeftClick} className="widget-action" style={{ color: "#6b93a3", cursor: "pointer", fontSize: 11, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span>📁 Riwayat Seluruh Run (Instance Frame)</span>
+                      <span style={{ color: "#00ffd2", fontSize: 10 }}>Buka ➔</span>
                     </div>
-                    <div onClick={(e) => handleWidgetRightClick(e)} onContextMenu={(e) => handleWidgetRightClick(e)} className="widget-action" style={{ color: "#c5a45b", cursor: "pointer", fontSize: 11 }}>
-                      Right-Click: <span style={{ color: "#d9e2ec" }}>Open Your Characters</span>
+                    <div onClick={(e) => handleWidgetRightClick(e)} onContextMenu={(e) => handleWidgetRightClick(e)} className="widget-action" style={{ color: "#6b93a3", cursor: "pointer", fontSize: 11, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span>👥 Karakter & Alts Status</span>
+                      <span style={{ color: "#00ffd2", fontSize: 10 }}>Buka ➔</span>
                     </div>
-                    <div onClick={(e) => handleWidgetMiddleClick(e)} className="widget-action" style={{ color: "#c5a45b", cursor: "pointer", fontSize: 11 }}>
-                      Middle-Click: <span style={{ color: "#d9e2ec" }}>Toggle Lockouts Detail</span>
+                    <div onClick={(e) => handleWidgetMiddleClick(e)} className="widget-action" style={{ color: "#6b93a3", cursor: "pointer", fontSize: 11, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span>⏳ Toggle Detail Lockout Aktif</span>
+                      <span style={{ color: "#00ffd2", fontSize: 10 }}>{showLockoutsDetail ? "Tutup" : "Buka"}</span>
                     </div>
-                    <div onClick={(e) => handleWidgetShiftLeftClick(e)} className="widget-action" style={{ color: "#c5a45b", cursor: "pointer", fontSize: 11 }}>
-                      Shift Left-Click: <span style={{ color: "#d9e2ec" }}>Open Trade Log (Chat AI)</span>
+                    <div onClick={(e) => handleWidgetShiftLeftClick(e)} className="widget-action" style={{ color: "#6b93a3", cursor: "pointer", fontSize: 11, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span>💬 Tanya AI seputar Gold/Rotasi</span>
+                      <span style={{ color: "#00ffd2", fontSize: 10 }}>Chat AI ➔</span>
                     </div>
-                    <div onClick={(e) => handleWidgetShiftRightClick(e)} className="widget-action" style={{ color: "#c5a45b", cursor: "pointer", fontSize: 11 }}>
-                      Shift Right-Click: <span style={{ color: "#d9e2ec" }}>Toggle Config (Sound: {soundEnabled ? "ON" : "OFF"})</span>
+                    <div onClick={(e) => handleWidgetShiftRightClick(e)} className="widget-action" style={{ color: "#6b93a3", cursor: "pointer", fontSize: 11, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span>🔊 Notifikasi Suara Reset</span>
+                      <span style={{ color: soundEnabled ? "#3dffa3" : "#ff8400", fontSize: 10, fontFamily: "monospace" }}>{soundEnabled ? "AKTIF" : "MUTE"}</span>
                     </div>
-                    <div onClick={(e) => handleWidgetCtrlLeftClick(e)} className="widget-action" style={{ color: "#c5a45b", cursor: "pointer", fontSize: 11 }}>
-                      Ctrl Left-Click: <span style={{ color: "#d9e2ec" }}>Level Log</span>
+                    <div onClick={(e) => handleWidgetCtrlLeftClick(e)} className="widget-action" style={{ color: "#6b93a3", cursor: "pointer", fontSize: 11, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span>📈 Catatan Level Karakter</span>
+                      <span style={{ color: "#00ffd2", fontSize: 10 }}>Cek ➔</span>
                     </div>
                   </div>
                 </div>
