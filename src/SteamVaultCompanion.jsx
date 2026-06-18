@@ -37,17 +37,11 @@ export default function SteamVaultCompanion() {
   const audioCtxRef = useRef(null);
   const alarmLoopRef = useRef(null);
   
-  const [showCharPanel, setShowCharPanel] = useState(false);
   const [showLogModal, setShowLogModal] = useState(false);
   const [showLockoutsDetail, setShowLockoutsDetail] = useState(true);
 
   const handleWidgetLeftClick = () => {
     setShowLogModal(true);
-  };
-
-  const handleWidgetRightClick = (e) => {
-    if (e) e.preventDefault();
-    setShowCharPanel(prev => !prev);
   };
 
   const handleWidgetMiddleClick = (e) => {
@@ -63,11 +57,6 @@ export default function SteamVaultCompanion() {
   const handleWidgetShiftRightClick = (e) => {
     if (e) e.preventDefault();
     setSoundEnabled(prev => !prev);
-  };
-
-  const handleWidgetCtrlLeftClick = (e) => {
-    if (e) e.preventDefault();
-    alert("Level Log: Karakter ChromeT saat ini berada di level 70 (Level Cap TBC)!");
   };
 
   const getAudioCtx = () => {
@@ -443,34 +432,10 @@ export default function SteamVaultCompanion() {
                     </div>
                   )}
 
-                  {/* Character panel */}
-                  {showCharPanel && (
-                    <div style={{ background: "#0d2733", border: "1px solid #183e52", padding: 10, borderRadius: 6, marginTop: 10 }}>
-                      <div style={{ fontSize: 11, color: "#00ffd2", fontWeight: "bold", marginBottom: 6, display: "flex", justifyContent: "space-between" }}>
-                        <span>Karakter Aktif TBC:</span>
-                        <span style={{ cursor: "pointer", color: "#ff8400" }} onClick={() => setShowCharPanel(false)}>✕</span>
-                      </div>
-                      {[
-                        { name: "ChromeT (Mage)", level: 70, runs: hourlyRuns.length },
-                        { name: "SteamFarmer (Druid)", level: 70, runs: 0 },
-                        { name: "CoilfangAlt (Priest)", level: 68, runs: 0 }
-                      ].map((c, idx) => (
-                        <div key={idx} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#e2eff2", padding: "4px 0", borderBottom: "1px solid rgba(24, 62, 82, 0.2)" }}>
-                          <span>{c.name} - Lvl {c.level}</span>
-                          <span style={{ color: "#3dffa3", fontFamily: "monospace" }}>{c.runs} run</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
                   {/* Actions list */}
                   <div style={{ display: "flex", flexDirection: "column", gap: 2, marginTop: 8, borderTop: "1px solid #183e52", paddingTop: 8 }}>
                     <div onClick={handleWidgetLeftClick} className="widget-action" style={{ color: "#6b93a3", cursor: "pointer", fontSize: 11, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <span>📁 Riwayat Seluruh Run (Instance Frame)</span>
-                      <span style={{ color: "#00ffd2", fontSize: 10 }}>Buka ➔</span>
-                    </div>
-                    <div onClick={(e) => handleWidgetRightClick(e)} onContextMenu={(e) => handleWidgetRightClick(e)} className="widget-action" style={{ color: "#6b93a3", cursor: "pointer", fontSize: 11, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span>👥 Karakter & Alts Status</span>
                       <span style={{ color: "#00ffd2", fontSize: 10 }}>Buka ➔</span>
                     </div>
                     <div onClick={(e) => handleWidgetMiddleClick(e)} className="widget-action" style={{ color: "#6b93a3", cursor: "pointer", fontSize: 11, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -484,10 +449,6 @@ export default function SteamVaultCompanion() {
                     <div onClick={(e) => handleWidgetShiftRightClick(e)} className="widget-action" style={{ color: "#6b93a3", cursor: "pointer", fontSize: 11, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <span>🔊 Notifikasi Suara Reset</span>
                       <span style={{ color: soundEnabled ? "#3dffa3" : "#ff8400", fontSize: 10, fontFamily: "monospace" }}>{soundEnabled ? "AKTIF" : "MUTE"}</span>
-                    </div>
-                    <div onClick={(e) => handleWidgetCtrlLeftClick(e)} className="widget-action" style={{ color: "#6b93a3", cursor: "pointer", fontSize: 11, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span>📈 Catatan Level Karakter</span>
-                      <span style={{ color: "#00ffd2", fontSize: 10 }}>Cek ➔</span>
                     </div>
                   </div>
                 </div>
