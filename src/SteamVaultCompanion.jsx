@@ -23,19 +23,9 @@ export default function SteamVaultCompanion() {
   const [timerActive, setTimerActive] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(RESET_SECONDS);
   const [timerComplete, setTimerComplete] = useState(false);
-  const [messages, setMessages] = useState([
-    { role: "assistant", content: "Halo Adventurer! Aku siap bantu farming Steam Vault kamu. Tanya apa saja — tips boss, strategi, gear, atau apapun!" }
-  ]);
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
   const [tipIndex, setTipIndex] = useState(0);
-  const [activeTab, setActiveTab] = useState("tracker");
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [alarmRinging, setAlarmRinging] = useState(false);
-  const [geminiKey, setGeminiKey] = useState(() => {
-    try { return localStorage.getItem("sv_gemini_key") || ""; } catch { return ""; }
-  });
-  const chatEndRef = useRef(null);
   const timerRef = useRef(null);
   const audioCtxRef = useRef(null);
   const alarmLoopRef = useRef(null);
@@ -50,11 +40,6 @@ export default function SteamVaultCompanion() {
   const handleWidgetMiddleClick = (e) => {
     if (e) e.preventDefault();
     setShowLockoutsDetail(prev => !prev);
-  };
-
-  const handleWidgetShiftLeftClick = (e) => {
-    if (e) e.preventDefault();
-    setActiveTab("chat");
   };
 
   const handleWidgetShiftRightClick = (e) => {
@@ -181,10 +166,6 @@ export default function SteamVaultCompanion() {
   }, [runs]);
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  useEffect(() => {
     const t = setInterval(() => setTipIndex(i => (i + 1) % STEAM_TIPS.length), 8000);
     return () => clearInterval(t);
   }, []);
@@ -280,53 +261,6 @@ export default function SteamVaultCompanion() {
   const fmt = s => `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
   const timerPct = ((RESET_SECONDS - timerSeconds) / RESET_SECONDS) * 100;
 
-  const sendMessage = useCallback(async () => {
-    if (!input.trim() || loading) return;
-    const userMsg = { role: "user", content: input.trim() };
-    setMessages(prev => [...prev, userMsg]);
-    setInput("");
-    setLoading(true);
-
-    try {
-      const history = [...messages.slice(1), userMsg].map(m => ({
-        role: m.role === "assistant" ? "model" : "user",
-        parts: [{ text: m.content }],
-      }));
-      if (!geminiKey) {
-        setMessages(prev => [...prev, { role: "assistant", content: "⚠ API Key belum diset. Masukkan Gemini API Key di kolom di atas chat terlebih dahulu." }]);
-        setLoading(false);
-        return;
-      }
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${geminiKey}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          systemInstruction: {
-            parts: [{ text: `Kamu adalah companion AI untuk World of Warcraft: The Burning Crusade (TBC Classic). Bantu pemain dengan segala topik seputar TBC — class & spec, talent build, rotasi, gear & BIS list, enchant & gem, dungeon & raid (Karazhan, Gruul, Magtheridon, SSC, TK, MH, BT, Sunwell), PvP & Arena, profesi, reputasi, gold farming, dan tips umum lainnya. Jawab dalam bahasa Indonesia yang santai, jelas, dan informatif. Jika ada data tracker: run jam ini ${hourlyRuns.length}/${HOURLY_CAP}, run 24 jam ini ${dailyRuns.length}/${DAILY_CAP} (dungeon Steam Vault). Instance limit TBC: 5/jam, 30/hari.` }],
-          },
-          contents: history,
-        }),
-      });
-      const data = await res.json();
-      if (data.error) {
-        const errMsg = data.error.message || "API error";
-        setMessages(prev => [...prev, { role: "assistant", content: `❌ Error dari Gemini: ${errMsg}` }]);
-        if (data.error.code === 400 || data.error.code === 403 || data.error.status === "INVALID_ARGUMENT") {
-          setGeminiKey("");
-          try { localStorage.removeItem("sv_gemini_key"); } catch {}
-        }
-      } else {
-        const text = data.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("") || "Maaf, ada error. Coba lagi ya!";
-        setMessages(prev => [...prev, { role: "assistant", content: text }]);
-      }
-    } catch {
-      setMessages(prev => [...prev, { role: "assistant", content: "Koneksi bermasalah. Coba lagi!" }]);
-    }
-    setLoading(false);
-  }, [input, loading, messages, geminiKey, dailyRuns.length, hourlyRuns.length, totalRuns]);
-
-  const handleKey = e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } };
-
   const hourlyBars = Array.from({ length: HOURLY_CAP }, (_, i) => i < hourlyRuns.length);
   const dailyBars = Array.from({ length: DAILY_CAP }, (_, i) => i < dailyRuns.length);
 
@@ -347,12 +281,7 @@ export default function SteamVaultCompanion() {
         .btn-danger:hover { background: #ff840033; }
         .btn-success { background: #3dffa322; color: #3dffa3; border: 1px solid #3dffa344; padding: 10px 24px; }
         .btn-success:hover { background: #3dffa333; }
-        .tab { cursor: pointer; padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; border: none; background: transparent; color: #6b93a3; transition: all 0.15s; }
-        .widget-action { padding: 6px 8px; border-radius: 6px; transition: all 0.15s; margin-bottom: 2px; }
         .widget-action:hover { background: #0d2733; color: #00ffd2 !important; }
-        .tab.active { background: #0d2733; color: #00ffd2; }
-        .tab:hover:not(.active) { color: #e2eff2; }
-        textarea { resize: none; outline: none; font-family: inherit; }
         .pulse { animation: pulse 2s ease-in-out infinite; }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
         .steam { animation: steam 3s ease-in-out infinite; }
@@ -378,12 +307,6 @@ export default function SteamVaultCompanion() {
             <span style={{ color: "#3dffa3" }}>🕒</span>
             <span>{new Date().toLocaleDateString("id-ID", { weekday: 'short', day: '2-digit', month: 'short' })} · {new Date().toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
           </div>
-          <div style={{ display: "flex", gap: 4 }}>
-            <button className={`tab ${activeTab === "tracker" ? "active" : ""}`} onClick={() => setActiveTab("tracker")}>⚔ Tracker</button>
-            <button className={`tab ${activeTab === "chat" ? "active" : ""}`} onClick={() => setActiveTab("chat")}>
-              💬 Chat AI {loading && <span className="pulse" style={{ marginLeft: 4 }}>●</span>}
-            </button>
-          </div>
         </div>
 
       </div>
@@ -396,8 +319,7 @@ export default function SteamVaultCompanion() {
 
       <div style={{ flex: 1, overflow: "hidden", display: "flex" }}>
 
-        {/* TRACKER TAB */}
-        {activeTab === "tracker" && (
+        {/* TRACKER */}
           <div style={{ flex: 1, padding: 20, overflowY: "auto" }}>
             <div style={{ display: "flex", gap: 20, flexWrap: "wrap", alignItems: "flex-start" }}>
               
@@ -461,10 +383,6 @@ export default function SteamVaultCompanion() {
                     <div onClick={(e) => handleWidgetMiddleClick(e)} className="widget-action" style={{ color: "#6b93a3", cursor: "pointer", fontSize: 11, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <span>⏳ Toggle Detail Lockout Aktif</span>
                       <span style={{ color: "#00ffd2", fontSize: 10 }}>{showLockoutsDetail ? "Tutup" : "Buka"}</span>
-                    </div>
-                    <div onClick={(e) => handleWidgetShiftLeftClick(e)} className="widget-action" style={{ color: "#6b93a3", cursor: "pointer", fontSize: 11, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span>💬 Tanya AI seputar Gold/Rotasi</span>
-                      <span style={{ color: "#00ffd2", fontSize: 10 }}>Chat AI ➔</span>
                     </div>
                     <div onClick={(e) => handleWidgetShiftRightClick(e)} className="widget-action" style={{ color: "#6b93a3", cursor: "pointer", fontSize: 11, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <span>🔊 Notifikasi Suara Reset</span>
@@ -678,87 +596,6 @@ export default function SteamVaultCompanion() {
             )}
 
           </div>
-        )}
-
-        {/* CHAT TAB */}
-        {activeTab === "chat" && (
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            {/* Context bar */}
-            <div style={{ background: "#0a1b24", borderBottom: "1px solid #183e5233", padding: "8px 16px", display: "flex", gap: 14, fontSize: 11, flexWrap: "wrap", alignItems: "center" }}>
-              <span style={{ color: "#6b93a3" }}>Jam ini: <span style={{ color: hourlyCapped ? "#ff8400" : "#00ffd2", fontFamily: "monospace" }}>{hourlyRuns.length}/{HOURLY_CAP}</span></span>
-              <span style={{ color: "#6b93a3" }}>24 Jam ini: <span style={{ color: dailyCapped ? "#ff8400" : "#3dffa3", fontFamily: "monospace" }}>{dailyRuns.length}/{DAILY_CAP}</span></span>
-              <span style={{ color: "#6b93a3" }}>Total: <span style={{ color: "#e2eff2", fontFamily: "monospace" }}>{totalRuns}</span></span>
-            </div>
-            {!geminiKey && (
-              <div style={{ background: "#0a1b24", borderBottom: "1px solid #183e5233", padding: "8px 16px", display: "flex", gap: 8, alignItems: "center" }}>
-                <span style={{ fontSize: 11, color: "#ff8400", whiteSpace: "nowrap" }}>🔑 API Key:</span>
-                <input
-                  type="password"
-                  placeholder="Masukkan Gemini API Key..."
-                  style={{ flex: 1, background: "#0d2733", border: "1px solid #183e52", borderRadius: 6, padding: "5px 10px", color: "#e2eff2", fontSize: 12, fontFamily: "inherit", outline: "none" }}
-                  onKeyDown={e => {
-                    if (e.key === "Enter" && e.target.value.trim()) {
-                      const key = e.target.value.trim();
-                      setGeminiKey(key);
-                      try { localStorage.setItem("sv_gemini_key", key); } catch {}
-                      e.target.value = "";
-                    }
-                  }}
-                />
-                <span style={{ fontSize: 10, color: "#6b93a3" }}>Enter to save</span>
-              </div>
-            )}
-
-
-            {/* Messages */}
-            <div style={{ flex: 1, overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
-              {messages.map((m, i) => (
-                <div key={i} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start" }}>
-                  <div style={{
-                    maxWidth: "80%", padding: "10px 14px", borderRadius: m.role === "user" ? "12px 12px 2px 12px" : "12px 12px 12px 2px",
-                    background: m.role === "user" ? "#00ffd2" : "#0d2733",
-                    color: m.role === "user" ? "#050e14" : "#e2eff2",
-                    fontSize: 14, lineHeight: 1.6, whiteSpace: "pre-wrap"
-                  }}>
-                    {m.content}
-                  </div>
-                </div>
-              ))}
-              {loading && (
-                <div style={{ display: "flex", justifyContent: "flex-start" }}>
-                  <div style={{ background: "#0d2733", borderRadius: "12px 12px 12px 2px", padding: "10px 16px", display: "flex", gap: 4, alignItems: "center" }}>
-                    {[0, 1, 2].map(i => (
-                      <div key={i} style={{ width: 6, height: 6, background: "#00ffd2", borderRadius: "50%", animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite` }} />
-                    ))}
-                  </div>
-                </div>
-              )}
-              <div ref={chatEndRef} />
-            </div>
-
-            {/* Quick prompts */}
-            <div style={{ padding: "0 16px 8px", display: "flex", gap: 6, flexWrap: "wrap" }}>
-              {["BIS gear untuk kelasku", "Tips farming gold TBC", "Raid mana yang cocok?", "Talent build terbaik", "Tips Arena & PvP", "Reputasi penting TBC"].map(q => (
-                <button key={q} className="btn btn-ghost" style={{ fontSize: 11, padding: "4px 10px" }} onClick={() => { setInput(q); }}>
-                  {q}
-                </button>
-              ))}
-            </div>
-
-            {/* Input */}
-            <div style={{ padding: "0 16px 16px", display: "flex", gap: 8, alignItems: "flex-end" }}>
-              <textarea
-                value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKey}
-                placeholder="Tanya seputar Steam Vault... (Enter untuk kirim)"
-                rows={2}
-                style={{ flex: 1, background: "#0d2733", border: "1px solid #2A3547", borderRadius: 8, padding: "10px 12px", color: "#e2eff2", fontSize: 14, lineHeight: 1.5 }}
-              />
-              <button className="btn btn-primary" onClick={sendMessage} disabled={loading || !input.trim()} style={{ padding: "10px 16px", height: 42 }}>
-                {loading ? "⏳" : "↑"}
-              </button>
-            </div>
-          </div>
-        )}
       </div>
 
 
