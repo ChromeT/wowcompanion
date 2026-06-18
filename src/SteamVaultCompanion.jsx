@@ -36,6 +36,39 @@ export default function SteamVaultCompanion() {
   const timerRef = useRef(null);
   const audioCtxRef = useRef(null);
   const alarmLoopRef = useRef(null);
+  
+  const [showCharPanel, setShowCharPanel] = useState(false);
+  const [showLogModal, setShowLogModal] = useState(false);
+  const [showLockoutsDetail, setShowLockoutsDetail] = useState(true);
+
+  const handleWidgetLeftClick = () => {
+    setShowLogModal(true);
+  };
+
+  const handleWidgetRightClick = (e) => {
+    if (e) e.preventDefault();
+    setShowCharPanel(prev => !prev);
+  };
+
+  const handleWidgetMiddleClick = (e) => {
+    if (e) e.preventDefault();
+    setShowLockoutsDetail(prev => !prev);
+  };
+
+  const handleWidgetShiftLeftClick = (e) => {
+    if (e) e.preventDefault();
+    setActiveTab("chat");
+  };
+
+  const handleWidgetShiftRightClick = (e) => {
+    if (e) e.preventDefault();
+    setSoundEnabled(prev => !prev);
+  };
+
+  const handleWidgetCtrlLeftClick = (e) => {
+    if (e) e.preventDefault();
+    alert("Level Log: Karakter ChromeT saat ini berada di level 70 (Level Cap TBC)!");
+  };
 
   const getAudioCtx = () => {
     if (!audioCtxRef.current) {
@@ -101,36 +134,54 @@ export default function SteamVaultCompanion() {
   }, []);
 
   const now = Date.now();
-  const todayRuns = runs.filter(r => r.date === new Date().toDateString());
+  const DAILY_MS = 24 * 3600 * 1000;
   const hourlyRuns = runs.filter(r => now - r.id < HOUR_MS);
+  const dailyRuns = runs.filter(r => now - r.id < DAILY_MS);
   const totalRuns = runs.length;
 
   // Cap
   const hourlyCapped = hourlyRuns.length >= HOURLY_CAP;
-  const dailyCapped = todayRuns.length >= DAILY_CAP;
+  const dailyCapped = dailyRuns.length >= DAILY_CAP;
   const capReached = hourlyCapped || dailyCapped;
 
   const remainingHourly = Math.max(0, HOURLY_CAP - hourlyRuns.length);
-  const remainingToday = Math.max(0, DAILY_CAP - todayRuns.length);
+  const remainingToday = Math.max(0, DAILY_CAP - dailyRuns.length);
 
-  // Countdown sampai slot jam tertua expire (sliding window)
-  const oldestHourly = hourlyRuns.length > 0 ? Math.min(...hourlyRuns.map(r => r.id)) : null;
-  const nextSlotMs = oldestHourly ? Math.max(0, oldestHourly + HOUR_MS - now) : 0;
+  // Sorting runs oldest to newest for cap countdown calculations
+  const sortedHourly = [...hourlyRuns].sort((a, b) => a.id - b.id);
+  const hourlyCapIndex = Math.max(0, sortedHourly.length - HOURLY_CAP);
+  const targetHourlyRun = sortedHourly.length >= HOURLY_CAP ? sortedHourly[hourlyCapIndex] : null;
+  const nextSlotMs = targetHourlyRun ? Math.max(0, targetHourlyRun.id + HOUR_MS - now) : 0;
   const nextSlotSec = Math.ceil(nextSlotMs / 1000);
-  const fmtSlot = s => `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
+  const fmtSlot = s => s > 0 ? `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}` : "Ready";
 
-  const getDailyResetTimeSec = () => {
-    const d = new Date();
-    const midnight = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, 0, 0, 0);
-    return Math.ceil((midnight.getTime() - d.getTime()) / 1000);
-  };
-  const dailyResetSec = getDailyResetTimeSec();
-  const fmtDailyReset = s => {
+  const sortedDaily = [...dailyRuns].sort((a, b) => a.id - b.id);
+  const dailyCapIndex = Math.max(0, sortedDaily.length - DAILY_CAP);
+  const targetDailyRun = sortedDaily.length >= DAILY_CAP ? sortedDaily[dailyCapIndex] : null;
+  const nextDailySlotMs = targetDailyRun ? Math.max(0, targetDailyRun.id + DAILY_MS - now) : 0;
+  const nextDailySlotSec = Math.ceil(nextDailySlotMs / 1000);
+  const fmtDailySlot = s => {
+    if (s <= 0) return "Ready";
     const h = Math.floor(s / 3600);
     const m = Math.floor((s % 3600) / 60);
     const sec = s % 60;
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
   };
+
+  const fmtDurationText = s => {
+    if (s <= 0) return "Now";
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = s % 60;
+    if (h > 0) {
+      return `${h} hours ${m} mins ${sec} secs`;
+    }
+    if (m > 0) {
+      return `${m} mins ${sec} secs`;
+    }
+    return `${sec} seconds`;
+  };
+
 
 
   useEffect(() => {
@@ -182,12 +233,10 @@ export default function SteamVaultCompanion() {
     }
   }, [timerComplete]);
 
-  // Auto-reset runs when date changes (midnight) and purge expired runs
+  // Purge expired runs (older than 24 hours)
   useEffect(() => {
-    const todayStr = new Date().toDateString();
     const nowTs = Date.now();
-    // Keep only runs from today OR runs within the last 1 hour (sliding window)
-    const validRuns = runs.filter(r => r.date === todayStr || nowTs - r.id < HOUR_MS);
+    const validRuns = runs.filter(r => nowTs - r.id < 24 * 3600 * 1000);
     if (validRuns.length !== runs.length) {
       setRuns(validRuns);
     }
@@ -204,10 +253,10 @@ export default function SteamVaultCompanion() {
 
   const removeLastRun = () => {
     ensureAudioCtx();
-    const todayIds = todayRuns.map(r => r.id);
-    if (todayIds.length === 0) return;
-    setRuns(prev => prev.filter(r => r.id !== todayIds[todayIds.length - 1]));
+    if (runs.length === 0) return;
+    setRuns(prev => prev.slice(0, -1));
   };
+
 
   const startTimer = () => {
     ensureAudioCtx();
@@ -254,7 +303,7 @@ export default function SteamVaultCompanion() {
         body: JSON.stringify({
           model: "claude-sonnet-4-6",
           max_tokens: 1000,
-          system: `Kamu adalah companion AI untuk World of Warcraft: The Burning Crusade (TBC Classic). Bantu pemain dengan segala topik seputar TBC — class & spec, talent build, rotasi, gear & BIS list, enchant & gem, dungeon & raid (Karazhan, Gruul, Magtheridon, SSC, TK, MH, BT, Sunwell), PvP & Arena, profesi, reputasi, gold farming, dan tips umum lainnya. Jawab dalam bahasa Indonesia yang santai, jelas, dan informatif. Jika ada data tracker: run jam ini ${hourlyRuns.length}/${HOURLY_CAP}, run hari ini ${todayRuns.length}/${DAILY_CAP} (dungeon Steam Vault). Instance limit TBC: 5/jam, 30/hari.`,
+          system: `Kamu adalah companion AI untuk World of Warcraft: The Burning Crusade (TBC Classic). Bantu pemain dengan segala topik seputar TBC — class & spec, talent build, rotasi, gear & BIS list, enchant & gem, dungeon & raid (Karazhan, Gruul, Magtheridon, SSC, TK, MH, BT, Sunwell), PvP & Arena, profesi, reputasi, gold farming, dan tips umum lainnya. Jawab dalam bahasa Indonesia yang santai, jelas, dan informatif. Jika ada data tracker: run jam ini ${hourlyRuns.length}/${HOURLY_CAP}, run 24 jam ini ${dailyRuns.length}/${DAILY_CAP} (dungeon Steam Vault). Instance limit TBC: 5/jam, 30/hari.`,
           messages: history,
         }),
       });
@@ -265,12 +314,12 @@ export default function SteamVaultCompanion() {
       setMessages(prev => [...prev, { role: "assistant", content: "Koneksi bermasalah. Coba lagi!" }]);
     }
     setLoading(false);
-  }, [input, loading, messages, todayRuns.length, totalRuns]);
+  }, [input, loading, messages, dailyRuns.length, totalRuns]);
 
   const handleKey = e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } };
 
   const hourlyBars = Array.from({ length: HOURLY_CAP }, (_, i) => i < hourlyRuns.length);
-  const dailyBars = Array.from({ length: DAILY_CAP }, (_, i) => i < todayRuns.length);
+  const dailyBars = Array.from({ length: DAILY_CAP }, (_, i) => i < dailyRuns.length);
 
   return (
     <div style={{ minHeight: "100vh", background: "#050e14", color: "#e2eff2", fontFamily: "'Inter', system-ui, sans-serif", display: "flex", flexDirection: "column" }}>
@@ -281,15 +330,17 @@ export default function SteamVaultCompanion() {
         .btn { cursor: pointer; border: none; border-radius: 8px; font-family: inherit; font-size: 14px; font-weight: 500; transition: all 0.15s; }
         .btn:active { transform: scale(0.97); }
         .btn-primary { background: #00ffd2; color: #050e14; padding: 10px 20px; }
-        .btn-primary:hover { background: #5BBDFF; }
+        .btn-primary:hover { background: #33ffdb; }
         .btn-primary:disabled { background: #00ffd244; color: #6b93a3; cursor: not-allowed; transform: none; }
-        .btn-ghost { background: transparent; color: #6b93a3; border: 1px solid #2A3547; padding: 8px 16px; }
+        .btn-ghost { background: transparent; color: #6b93a3; border: 1px solid #183e52; padding: 8px 16px; }
         .btn-ghost:hover { background: #0d2733; color: #e2eff2; }
         .btn-danger { background: #ff840022; color: #ff8400; border: 1px solid #ff840044; padding: 8px 16px; }
         .btn-danger:hover { background: #ff840033; }
         .btn-success { background: #3dffa322; color: #3dffa3; border: 1px solid #3dffa344; padding: 10px 24px; }
         .btn-success:hover { background: #3dffa333; }
         .tab { cursor: pointer; padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; border: none; background: transparent; color: #6b93a3; transition: all 0.15s; }
+        .widget-action { padding: 4px 6px; border-radius: 4px; transition: background 0.1s; margin-bottom: 2px; }
+        .widget-action:hover { background: rgba(197, 164, 91, 0.15); }
         .tab.active { background: #0d2733; color: #00ffd2; }
         .tab:hover:not(.active) { color: #e2eff2; }
         textarea { resize: none; outline: none; font-family: inherit; }
@@ -338,153 +389,302 @@ export default function SteamVaultCompanion() {
 
         {/* TRACKER TAB */}
         {activeTab === "tracker" && (
-          <div style={{ flex: 1, padding: 20, overflowY: "auto", display: "flex", flexDirection: "column", gap: 16 }}>
-
-            {/* Stats row */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10 }}>
-              {[
-                { label: "Run Jam Ini", value: hourlyRuns.length, sub: `dari ${HOURLY_CAP} / jam`, color: hourlyCapped ? "#ff8400" : "#00ffd2" },
-                { label: "Sisa Jam Ini", value: remainingHourly, sub: oldestHourly ? `Next: ${fmtSlot(nextSlotSec)}` : "Semua slot ready", color: hourlyCapped ? "#ff8400" : "#3dffa3" },
-                { label: "Run Hari Ini", value: todayRuns.length, sub: `Reset: ${fmtDailyReset(dailyResetSec)}`, color: dailyCapped ? "#ff8400" : "#6b93a3" },
-                { label: "Total Lifetime", value: totalRuns, sub: "semua run", color: "#6b93a3" },
-              ].map((s, i) => (
-                <div key={i} style={{ background: "#0a1b24", border: "1px solid #183e52", borderRadius: 10, padding: "12px 14px" }}>
-                  <div style={{ fontSize: 10, color: "#6b93a3", marginBottom: 4, fontWeight: 500 }}>{s.label}</div>
-                  <div style={{ fontSize: 28, fontWeight: 600, color: s.color, fontFamily: "'JetBrains Mono', monospace", lineHeight: 1 }}>{s.value}</div>
-                  <div style={{ fontSize: 10, color: "#6b93a355", marginTop: 4 }}>{s.sub}</div>
+          <div style={{ flex: 1, padding: 20, overflowY: "auto" }}>
+            <div style={{ display: "flex", gap: 20, flexWrap: "wrap", alignItems: "flex-start" }}>
+              
+              {/* LEFT COLUMN: Nova Instance Tracker Tooltip Widget */}
+              <div style={{ flex: "1 1 360px", maxWidth: "460px", background: "#000000", border: "1px solid #c5a45b", borderRadius: 4, padding: "14px 16px", boxShadow: "0 8px 32px rgba(0,0,0,0.8)", fontFamily: "system-ui, sans-serif" }}>
+                {/* Widget Header */}
+                <div style={{ display: "flex", alignItems: "center", gap: 8, borderBottom: "1px solid rgba(197, 164, 91, 0.25)", paddingBottom: 6, marginBottom: 8 }}>
+                  <span style={{ color: "#ffd100", fontSize: 13, fontWeight: "bold", letterSpacing: "0.02em" }}>Nova Instance Tracker</span>
+                  <span className="pulse" style={{ width: 6, height: 6, borderRadius: "50%", background: "#3dffa3", marginLeft: "auto", boxShadow: "0 0 6px #3dffa3" }} />
                 </div>
-              ))}
-            </div>
 
-            {/* Cap progress bars */}
-            <div style={{ background: "#0a1b24", border: "1px solid #183e52", borderRadius: 10, padding: 16, display: "flex", flexDirection: "column", gap: 14 }}>
-              {/* Hourly */}
-              <div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                  <span style={{ fontSize: 11, color: "#6b93a3", fontWeight: 500 }}>INSTANCE / JAM</span>
-                  <span style={{ fontSize: 11, color: hourlyCapped ? "#ff8400" : "#00ffd2", fontFamily: "'JetBrains Mono'" }}>{hourlyRuns.length}/{HOURLY_CAP}</span>
+                {/* Widget Body */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <div style={{ color: "#ffd100", fontSize: 12 }}>
+                    <span style={{ color: "#ff4500", fontFamily: "'JetBrains Mono', monospace", fontWeight: "bold" }}>{hourlyRuns.length}</span> instances in the past hour.
+                  </div>
+                  <div style={{ color: "#ffd100", fontSize: 12 }}>
+                    <span style={{ color: "#ff4500", fontFamily: "'JetBrains Mono', monospace", fontWeight: "bold" }}>{dailyRuns.length}</span> instances in the past 24h.
+                  </div>
+                  <div style={{ color: "#ffd100", fontSize: 12, marginBottom: 4 }}>
+                    Next instance available in <span style={{ color: "#ffd100", fontWeight: "bold", fontFamily: "'JetBrains Mono', monospace" }}>{fmtDurationText(nextSlotSec)}</span>.
+                  </div>
+
+                  {/* Lockouts */}
+                  {showLockoutsDetail && (
+                    <div style={{ marginTop: 4, display: "flex", flexDirection: "column", gap: 4 }}>
+                      <div style={{ color: "#ffd100", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: "1px dashed rgba(197, 164, 91, 0.15)", paddingBottom: 2, marginBottom: 4 }}>
+                        Current Hour Lockouts:
+                      </div>
+                      
+                      {hourlyRuns.length === 0 ? (
+                        <div style={{ color: "#6b93a3", fontSize: 11, fontStyle: "italic", padding: "4px 0" }}>No active lockouts in the past hour.</div>
+                      ) : (
+                        [...hourlyRuns].reverse().map((r) => {
+                          const timeLeftSec = Math.ceil(Math.max(0, (r.id + HOUR_MS - now) / 1000));
+                          const m = Math.floor(timeLeftSec / 60);
+                          const s = timeLeftSec % 60;
+                          const timeStr = m > 0 ? `${m} mins ${s} secs` : `${s} secs`;
+                          return (
+                            <div key={r.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#9dcae1", padding: "1px 0" }}>
+                              <span>Coilfang: The Steamvault</span>
+                              <span style={{ fontFamily: "monospace", color: "#b0c4de" }}>({timeStr} left on lockout)</span>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  )}
+
+                  {/* Character panel */}
+                  {showCharPanel && (
+                    <div style={{ background: "#0a0a0a", border: "1px solid #c5a45b", padding: 8, borderRadius: 4, marginTop: 8 }}>
+                      <div style={{ fontSize: 11, color: "#ffd100", fontWeight: "bold", marginBottom: 6, display: "flex", justifyContent: "space-between" }}>
+                        <span>Characters:</span>
+                        <span style={{ cursor: "pointer", color: "#ff4500" }} onClick={() => setShowCharPanel(false)}>✕</span>
+                      </div>
+                      {[
+                        { name: "ChromeT (Mage)", level: 70, runs: hourlyRuns.length },
+                        { name: "SteamFarmer (Druid)", level: 70, runs: 0 },
+                        { name: "CoilfangAlt (Priest)", level: 68, runs: 0 }
+                      ].map((c, idx) => (
+                        <div key={idx} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#ffffff", padding: "3px 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                          <span>{c.name} - Lvl {c.level}</span>
+                          <span style={{ color: "#ff4500", fontFamily: "monospace" }}>{c.runs} runs</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Mouse interaction footer */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 2, marginTop: 8, borderTop: "1px solid rgba(197, 164, 91, 0.15)", paddingTop: 8 }}>
+                    <div onClick={handleWidgetLeftClick} className="widget-action" style={{ color: "#c5a45b", cursor: "pointer", fontSize: 11 }}>
+                      Left-Click: <span style={{ color: "#d9e2ec" }}>Open Instance Frame</span>
+                    </div>
+                    <div onClick={(e) => handleWidgetRightClick(e)} onContextMenu={(e) => handleWidgetRightClick(e)} className="widget-action" style={{ color: "#c5a45b", cursor: "pointer", fontSize: 11 }}>
+                      Right-Click: <span style={{ color: "#d9e2ec" }}>Open Your Characters</span>
+                    </div>
+                    <div onClick={(e) => handleWidgetMiddleClick(e)} className="widget-action" style={{ color: "#c5a45b", cursor: "pointer", fontSize: 11 }}>
+                      Middle-Click: <span style={{ color: "#d9e2ec" }}>Toggle Lockouts Detail</span>
+                    </div>
+                    <div onClick={(e) => handleWidgetShiftLeftClick(e)} className="widget-action" style={{ color: "#c5a45b", cursor: "pointer", fontSize: 11 }}>
+                      Shift Left-Click: <span style={{ color: "#d9e2ec" }}>Open Trade Log (Chat AI)</span>
+                    </div>
+                    <div onClick={(e) => handleWidgetShiftRightClick(e)} className="widget-action" style={{ color: "#c5a45b", cursor: "pointer", fontSize: 11 }}>
+                      Shift Right-Click: <span style={{ color: "#d9e2ec" }}>Toggle Config (Sound: {soundEnabled ? "ON" : "OFF"})</span>
+                    </div>
+                    <div onClick={(e) => handleWidgetCtrlLeftClick(e)} className="widget-action" style={{ color: "#c5a45b", cursor: "pointer", fontSize: 11 }}>
+                      Ctrl Left-Click: <span style={{ color: "#d9e2ec" }}>Level Log</span>
+                    </div>
+                  </div>
                 </div>
-                <div style={{ display: "flex", gap: 5 }}>
-                  {hourlyBars.map((filled, i) => (
-                    <div key={i} style={{ flex: 1, height: 22, borderRadius: 4, background: filled ? "#00ffd2" : "#0d2733", transition: "background 0.3s", boxShadow: filled ? "0 0 6px #00ffd255" : "none" }} />
+              </div>
+
+              {/* RIGHT COLUMN: Controls, stats & reset timers */}
+              <div style={{ flex: "1 1 400px", display: "flex", flexDirection: "column", gap: 16 }}>
+                
+                {/* Stats row */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  {[
+                    { label: "Run Jam Ini", value: hourlyRuns.length, sub: `dari ${HOURLY_CAP} / jam`, color: hourlyCapped ? "#ff8400" : "#00ffd2" },
+                    { label: "Sisa Jam Ini", value: remainingHourly, sub: targetHourlyRun ? `Next: ${fmtSlot(nextSlotSec)}` : "Semua slot ready", color: hourlyCapped ? "#ff8400" : "#3dffa3" },
+                    { label: "Run 24 Jam Ini", value: dailyRuns.length, sub: targetDailyRun ? `Next: ${fmtDailySlot(nextDailySlotSec)}` : "Semua slot ready", color: dailyCapped ? "#ff8400" : "#6b93a3" },
+                    { label: "Total Lifetime", value: totalRuns, sub: "semua run", color: "#6b93a3" },
+                  ].map((s, i) => (
+                    <div key={i} style={{ background: "#0a1b24", border: "1px solid #183e52", borderRadius: 10, padding: "12px 14px" }}>
+                      <div style={{ fontSize: 10, color: "#6b93a3", marginBottom: 4, fontWeight: 500 }}>{s.label}</div>
+                      <div style={{ fontSize: 24, fontWeight: 600, color: s.color, fontFamily: "'JetBrains Mono', monospace", lineHeight: 1 }}>{s.value}</div>
+                      <div style={{ fontSize: 10, color: "#6b93a3cc", marginTop: 4 }}>{s.sub}</div>
+                    </div>
                   ))}
                 </div>
-                {oldestHourly && (
-                  <div style={{ fontSize: 11, color: hourlyCapped ? "#ff8400" : "#00ffd2", marginTop: 7, display: "flex", alignItems: "center", gap: 6 }}>
-                    <span className="pulse">⏳</span>
-                    Slot berikutnya terbuka dalam <span style={{ fontFamily: "'JetBrains Mono'", fontWeight: 600, marginLeft: 4 }}>{fmtSlot(nextSlotSec)}</span>
+
+                {/* Progress bars */}
+                <div style={{ background: "#0a1b24", border: "1px solid #183e52", borderRadius: 10, padding: 16, display: "flex", flexDirection: "column", gap: 14 }}>
+                  <div>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                      <span style={{ fontSize: 11, color: "#6b93a3", fontWeight: 500 }}>INSTANCE / JAM (ROLLING)</span>
+                      <span style={{ fontSize: 11, color: hourlyCapped ? "#ff8400" : "#00ffd2", fontFamily: "'JetBrains Mono'" }}>{hourlyRuns.length}/{HOURLY_CAP}</span>
+                    </div>
+                    <div style={{ display: "flex", gap: 5 }}>
+                      {Array.from({ length: HOURLY_CAP }, (_, i) => i < hourlyRuns.length).map((filled, i) => (
+                        <div key={i} style={{ flex: 1, height: 16, borderRadius: 4, background: filled ? "#00ffd2" : "#0d2733", transition: "background 0.3s", boxShadow: filled ? "0 0 6px #00ffd255" : "none" }} />
+                      ))}
+                    </div>
+                    {targetHourlyRun && (
+                      <div style={{ fontSize: 11, color: hourlyCapped ? "#ff8400" : "#00ffd2", marginTop: 7, display: "flex", alignItems: "center", gap: 6 }}>
+                        <span className="pulse">⏳</span>
+                        Slot berikutnya terbuka dalam <span style={{ fontFamily: "'JetBrains Mono'", fontWeight: 600, marginLeft: 4 }}>{fmtSlot(nextSlotSec)}</span>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-              {/* Daily */}
-              <div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                  <span style={{ fontSize: 11, color: "#6b93a3", fontWeight: 500 }}>INSTANCE / HARI</span>
-                  <span style={{ fontSize: 11, color: dailyCapped ? "#ff8400" : "#6b93a3", fontFamily: "'JetBrains Mono'" }}>{todayRuns.length}/{DAILY_CAP}</span>
-                </div>
-                <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
-                  {dailyBars.map((filled, i) => (
-                    <div key={i} style={{ width: "calc(10% - 3px)", height: 14, borderRadius: 3, background: filled ? (i >= 25 ? "#ff8400" : "#3dffa366") : "#0d2733", transition: "background 0.3s" }} />
-                  ))}
-                </div>
-                {dailyCapped && <div style={{ fontSize: 11, color: "#ff8400", marginTop: 7, textAlign: "center", fontWeight: 600 }}>⚠ Cap harian 30 tercapai!</div>}
-                <div style={{ fontSize: 11, color: "#6b93a3", marginTop: 7, display: "flex", alignItems: "center", gap: 6 }}>
-                  <span className="pulse">📅</span>
-                  Reset harian dalam <span style={{ fontFamily: "'JetBrains Mono'", fontWeight: 600, marginLeft: 4, color: "#e2eff2" }}>{fmtDailyReset(dailyResetSec)}</span>
-                </div>
-              </div>
-            </div>
-
-
-            {/* Action buttons */}
-            <div style={{ display: "flex", gap: 10 }}>
-              <button className="btn btn-success" style={{ flex: 1, fontSize: 15 }} onClick={addRun} disabled={capReached}>
-                {hourlyCapped && !dailyCapped
-                  ? `⏳ Tunggu ${fmtSlot(nextSlotSec)}`
-                  : dailyCapped
-                  ? "🚫 Cap Harian Penuh"
-                  : "+ Catat Run Selesai"}
-              </button>
-              <button className="btn btn-ghost" onClick={removeLastRun} disabled={todayRuns.length === 0} style={{ fontSize: 13 }}>Undo</button>
-            </div>
-
-            {/* Reset Timer */}
-            <div style={{ background: "#0a1b24", border: `1px solid ${timerActive ? "#00ffd244" : timerComplete ? "#3dffa344" : "#183e52"}`, borderRadius: 10, padding: 16 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                <div>
-                  <div style={{ fontSize: 12, color: "#6b93a3", fontWeight: 500 }}>DUNGEON RESET TIMER</div>
-                  <div style={{ fontSize: 11, color: "#6b93a355", marginTop: 2 }}>Log out 5 menit untuk reset instance</div>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <button
-                    onClick={() => { setSoundEnabled(v => !v); if (alarmRinging) setAlarmRinging(false); }}
-                    title={soundEnabled ? "Matikan alarm" : "Nyalakan alarm"}
-                    style={{ background: soundEnabled ? "#00ffd222" : "#6b93a322", border: `1px solid ${soundEnabled ? "#00ffd255" : "#6b93a355"}`, borderRadius: 6, padding: "4px 10px", cursor: "pointer", fontSize: 16, lineHeight: 1, color: soundEnabled ? "#00ffd2" : "#6b93a3", transition: "all 0.15s" }}
-                    aria-label={soundEnabled ? "Mute alarm" : "Unmute alarm"}
-                  >
-                    {soundEnabled ? "🔔" : "🔕"}
-                  </button>
-                  <div style={{ fontFamily: "'JetBrains Mono'", fontSize: 36, fontWeight: 600, color: timerComplete ? "#3dffa3" : timerActive ? "#00ffd2" : "#e2eff2" }}>
-                    {fmt(timerSeconds)}
+                  <div>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                      <span style={{ fontSize: 11, color: "#6b93a3", fontWeight: 500 }}>INSTANCE / 24 JAM (ROLLING)</span>
+                      <span style={{ fontSize: 11, color: dailyCapped ? "#ff8400" : "#6b93a3", fontFamily: "'JetBrains Mono'" }}>{dailyRuns.length}/{DAILY_CAP}</span>
+                    </div>
+                    <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
+                      {Array.from({ length: DAILY_CAP }, (_, i) => i < dailyRuns.length).map((filled, i) => (
+                        <div key={i} style={{ width: "calc(10% - 3px)", height: 12, borderRadius: 3, background: filled ? (i >= 25 ? "#ff8400" : "#3dffa366") : "#0d2733", transition: "background 0.3s" }} />
+                      ))}
+                    </div>
+                    {targetDailyRun && (
+                      <div style={{ fontSize: 11, color: dailyCapped ? "#ff8400" : "#6b93a3", marginTop: 7, display: "flex", alignItems: "center", gap: 6 }}>
+                        <span className="pulse">⏳</span>
+                        Slot harian berikutnya terbuka dalam <span style={{ fontFamily: "'JetBrains Mono'", fontWeight: 600, marginLeft: 4, color: "#e2eff2" }}>{fmtDailySlot(nextDailySlotSec)}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
-              </div>
 
-              {/* Timer progress bar */}
-              <div style={{ background: "#0d2733", borderRadius: 4, height: 6, marginBottom: 12, overflow: "hidden" }}>
-                <div style={{ height: "100%", borderRadius: 4, background: timerComplete ? "#3dffa3" : "#00ffd2", width: `${timerPct}%`, transition: "width 1s linear" }} />
-              </div>
-
-              {timerComplete && (
-                <div style={{ background: "#3dffa311", border: "1px solid #3dffa333", borderRadius: 6, padding: "8px 12px", marginBottom: 10, fontSize: 13, color: "#3dffa3", textAlign: "center" }}>
-                  ✅ Reset selesai! Log in sekarang dan masuk dungeon.
-                </div>
-              )}
-
-              <div style={{ display: "flex", gap: 8 }}>
-                {alarmRinging && (
+                {/* Actions */}
+                <div style={{ display: "flex", gap: 10 }}>
                   <button
                     className="btn"
-                    onClick={stopAlarm}
-                    style={{ flex: 1, background: "#ff840022", color: "#ff8400", border: "1px solid #ff840044", fontSize: 14, fontWeight: 600, animation: "pulse 0.8s ease-in-out infinite" }}
+                    style={{
+                      flex: 2,
+                      fontSize: 14,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      borderRadius: 8,
+                      padding: "12px 24px",
+                      transition: "all 0.15s",
+                      background: capReached ? "#ff840022" : "#3dffa322",
+                      color: capReached ? "#ff8400" : "#3dffa3",
+                      border: `1px solid ${capReached ? "#ff8400cc" : "#3dffa3cc"}`
+                    }}
+                    onClick={addRun}
                   >
-                    🔕 Hentikan Alarm
+                    {hourlyCapped && !dailyCapped
+                      ? `⏳ Catat Run Selesai (Cap Jam Ini)`
+                      : dailyCapped
+                      ? "⚠ Catat Run Selesai (Cap Harian)"
+                      : "+ Catat Run Selesai"}
                   </button>
-                )}
-                {!timerActive && !alarmRinging && (
-                  <button className="btn btn-primary" style={{ flex: 1 }} onClick={startTimer}>
-                    {timerComplete ? "⏱ Timer Ulang" : "⏱ Mulai Timer Reset"}
-                  </button>
-                )}
-                {!timerActive && alarmRinging && (
-                  <button className="btn btn-ghost" style={{ flex: 1 }} onClick={startTimer}>⏱ Timer Ulang</button>
-                )}
-                {timerActive && (
-                  <>
-                    <button className="btn btn-ghost" style={{ flex: 1 }} onClick={stopTimer}>Batal</button>
-                    <div style={{ flex: 2, background: "#0d2733", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: "#6b93a3" }}>
-                      <span className="pulse">●</span>&nbsp;Menunggu reset...
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
+                  <button className="btn btn-ghost" onClick={removeLastRun} disabled={runs.length === 0} style={{ fontSize: 13, flex: 1 }}>Undo</button>
+                </div>
 
-            {/* Today's run log */}
-            {todayRuns.length > 0 && (
-              <div style={{ background: "#0a1b24", border: "1px solid #183e52", borderRadius: 10, padding: 16 }}>
-                <div style={{ fontSize: 12, color: "#6b93a3", fontWeight: 500, marginBottom: 10 }}>LOG HARI INI</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {todayRuns.map((r, i) => (
-                    <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <div style={{ width: 20, height: 20, background: "#00ffd222", border: "1px solid #00ffd244", borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "#00ffd2", fontFamily: "'JetBrains Mono'" }}>{i + 1}</div>
-                      <div style={{ fontSize: 13, color: "#e2eff2" }}>Run #{i + 1}</div>
-                      <div style={{ marginLeft: "auto", fontSize: 11, color: "#6b93a3", fontFamily: "'JetBrains Mono'" }}>{r.time}</div>
+                {/* Reset Timer */}
+                <div style={{ background: "#0a1b24", border: `1px solid ${timerActive ? "#00ffd244" : timerComplete ? "#3dffa344" : "#183e52"}`, borderRadius: 10, padding: 16 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                    <div>
+                      <div style={{ fontSize: 12, color: "#6b93a3", fontWeight: 500 }}>DUNGEON RESET TIMER</div>
+                      <div style={{ fontSize: 11, color: "#6b93a355", marginTop: 2 }}>Log out 5 menit untuk reset instance</div>
                     </div>
-                  ))}
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <button
+                        onClick={() => { setSoundEnabled(v => !v); if (alarmRinging) setAlarmRinging(false); }}
+                        title={soundEnabled ? "Matikan alarm" : "Nyalakan alarm"}
+                        style={{ background: soundEnabled ? "#00ffd222" : "#6b93a322", border: `1px solid ${soundEnabled ? "#00ffd255" : "#6b93a355"}`, borderRadius: 6, padding: "4px 10px", cursor: "pointer", fontSize: 16, lineHeight: 1, color: soundEnabled ? "#00ffd2" : "#6b93a3", transition: "all 0.15s" }}
+                        aria-label={soundEnabled ? "Mute alarm" : "Unmute alarm"}
+                      >
+                        {soundEnabled ? "🔔" : "🔕"}
+                      </button>
+                      <div style={{ fontFamily: "'JetBrains Mono'", fontSize: 32, fontWeight: 600, color: timerComplete ? "#3dffa3" : timerActive ? "#00ffd2" : "#e2eff2" }}>
+                        {fmt(timerSeconds)}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ background: "#0d2733", borderRadius: 4, height: 6, marginBottom: 12, overflow: "hidden" }}>
+                    <div style={{ height: "100%", borderRadius: 4, background: timerComplete ? "#3dffa3" : "#00ffd2", width: `${timerPct}%`, transition: "width 1s linear" }} />
+                  </div>
+
+                  {timerComplete && (
+                    <div style={{ background: "#3dffa311", border: "1px solid #3dffa333", borderRadius: 6, padding: "8px 12px", marginBottom: 10, fontSize: 13, color: "#3dffa3", textAlign: "center" }}>
+                      ✅ Reset selesai! Log in sekarang dan masuk dungeon.
+                    </div>
+                  )}
+
+                  <div style={{ display: "flex", gap: 8 }}>
+                    {alarmRinging && (
+                      <button
+                        className="btn"
+                        onClick={stopAlarm}
+                        style={{ flex: 1, background: "#ff840022", color: "#ff8400", border: "1px solid #ff840044", fontSize: 14, fontWeight: 600, animation: "pulse 0.8s ease-in-out infinite" }}
+                      >
+                        🔕 Hentikan Alarm
+                      </button>
+                    )}
+                    {!timerActive && !alarmRinging && (
+                      <button className="btn btn-primary" style={{ flex: 1 }} onClick={startTimer}>
+                        {timerComplete ? "⏱ Timer Ulang" : "⏱ Mulai Timer Reset"}
+                      </button>
+                    )}
+                    {!timerActive && alarmRinging && (
+                      <button className="btn btn-ghost" style={{ flex: 1 }} onClick={startTimer}>⏱ Timer Ulang</button>
+                    )}
+                    {timerActive && (
+                      <>
+                        <button className="btn btn-ghost" style={{ flex: 1 }} onClick={stopTimer}>Batal</button>
+                        <div style={{ flex: 2, background: "#0d2733", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: "#6b93a3" }}>
+                          <span className="pulse">●</span>&nbsp;Menunggu reset...
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Today's run log with scroll limit */}
+                {dailyRuns.length > 0 && (
+                  <div style={{ background: "#0a1b24", border: "1px solid #183e52", borderRadius: 10, padding: 16 }}>
+                    <div style={{ fontSize: 12, color: "#6b93a3", fontWeight: 500, marginBottom: 10 }}>LOG RUN (24 JAM TERAKHIR)</div>
+                    <div style={{ maxHeight: "180px", overflowY: "auto", display: "flex", flexDirection: "column", gap: 6, paddingRight: 4 }}>
+                      {dailyRuns.map((r, i) => (
+                        <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <div style={{ width: 20, height: 20, background: "#00ffd222", border: "1px solid #00ffd244", borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "#00ffd2", fontFamily: "'JetBrains Mono'" }}>{i + 1}</div>
+                          <div style={{ fontSize: 13, color: "#e2eff2" }}>Run #{i + 1}</div>
+                          <div style={{ marginLeft: "auto", fontSize: 11, color: "#6b93a3", fontFamily: "'JetBrains Mono'" }}>{r.time}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+              </div>
+
+            </div>
+            
+            {/* Instance Frame Modal */}
+            {showLogModal && (
+              <div style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
+                <div style={{ background: "#0a1b24", border: "2px solid #ffd100", borderRadius: 8, width: "90%", maxWidth: "500px", padding: 20, boxShadow: "0 0 20px rgba(0,0,0,0.8)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #183e52", paddingBottom: 10, marginBottom: 15 }}>
+                    <h3 style={{ color: "#ffd100", fontSize: 16 }}>Instance Frame - Log Seluruh Run</h3>
+                    <button style={{ background: "transparent", border: "none", color: "#6b93a3", fontSize: 18, cursor: "pointer" }} onClick={() => setShowLogModal(false)}>✕</button>
+                  </div>
+                  <div style={{ maxHeight: "300px", overflowY: "auto", display: "flex", flexDirection: "column", gap: 8, paddingRight: 4 }}>
+                    {runs.length === 0 ? (
+                      <div style={{ color: "#6b93a3", fontSize: 13, textAlign: "center", padding: "20px 0" }}>Belum ada run yang tercatat.</div>
+                    ) : (
+                      [...runs].reverse().map((r, i) => (
+                        <div key={r.id} style={{ display: "flex", justifyItems: "center", alignItems: "center", background: "#0d2733", border: "1px solid #183e52", borderRadius: 6, padding: "8px 12px" }}>
+                          <span style={{ fontSize: 12, color: "#00ffd2", fontWeight: 600, marginRight: 10 }}>Run #{runs.length - i}</span>
+                          <span style={{ fontSize: 12, color: "#e2eff2" }}>{new Date(r.id).toLocaleDateString("id-ID", { day: '2-digit', month: 'short' })}</span>
+                          <span style={{ fontSize: 11, color: "#6b93a3", marginLeft: 8 }}>{r.time}</span>
+                          <button
+                            style={{ marginLeft: "auto", background: "transparent", border: "none", color: "#ff8400", fontSize: 11, cursor: "pointer" }}
+                            onClick={() => {
+                              if (confirm("Hapus run ini?")) {
+                                setRuns(prev => prev.filter(item => item.id !== r.id));
+                              }
+                            }}
+                          >
+                            Hapus
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 15 }}>
+                    <button className="btn btn-ghost" onClick={() => setShowLogModal(false)}>Tutup</button>
+                  </div>
                 </div>
               </div>
             )}
+
           </div>
         )}
 
@@ -494,9 +694,10 @@ export default function SteamVaultCompanion() {
             {/* Context bar */}
             <div style={{ background: "#0a1b24", borderBottom: "1px solid #183e5233", padding: "8px 16px", display: "flex", gap: 14, fontSize: 11, flexWrap: "wrap" }}>
               <span style={{ color: "#6b93a3" }}>Jam ini: <span style={{ color: hourlyCapped ? "#ff8400" : "#00ffd2", fontFamily: "monospace" }}>{hourlyRuns.length}/{HOURLY_CAP}</span></span>
-              <span style={{ color: "#6b93a3" }}>Hari ini: <span style={{ color: dailyCapped ? "#ff8400" : "#3dffa3", fontFamily: "monospace" }}>{todayRuns.length}/{DAILY_CAP}</span></span>
+              <span style={{ color: "#6b93a3" }}>24 Jam ini: <span style={{ color: dailyCapped ? "#ff8400" : "#3dffa3", fontFamily: "monospace" }}>{dailyRuns.length}/{DAILY_CAP}</span></span>
               <span style={{ color: "#6b93a3" }}>Total: <span style={{ color: "#e2eff2", fontFamily: "monospace" }}>{totalRuns}</span></span>
             </div>
+
 
             {/* Messages */}
             <div style={{ flex: 1, overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
