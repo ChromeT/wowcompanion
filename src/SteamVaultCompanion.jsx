@@ -32,23 +32,55 @@ export default function SteamVaultCompanion() {
   const [activeTab, setActiveTab] = useState("tracker");
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [alarmRinging, setAlarmRinging] = useState(false);
+  const [debugLogs, setDebugLogs] = useState([]);
   const chatEndRef = useRef(null);
   const timerRef = useRef(null);
   const audioCtxRef = useRef(null);
   const alarmLoopRef = useRef(null);
 
+  const logDebug = useCallback((msg) => {
+    const time = new Date().toLocaleTimeString();
+    setDebugLogs(prev => [...prev, `[${time}] ${msg}`].slice(-10));
+    console.log(msg);
+  }, []);
+
   const getAudioCtx = () => {
     if (!audioCtxRef.current) {
+      logDebug("Creating new AudioContext");
       audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
     }
     return audioCtxRef.current;
   };
 
+  const ensureAudioCtx = useCallback(() => {
+    try {
+      const ctx = getAudioCtx();
+      if (ctx.state === "suspended") {
+        logDebug("Initializing/resuming AudioContext on user gesture...");
+        ctx.resume().then(() => {
+          logDebug(`AudioContext resumed successfully. State: ${ctx.state}`);
+        });
+      }
+    } catch (e) {
+      logDebug(`AudioContext gesture activation error: ${e.message}`);
+    }
+  }, [logDebug]);
+
+
   const playAlarm = useCallback(() => {
+    logDebug(`playAlarm invoked. soundEnabled=${soundEnabled}`);
     if (!soundEnabled) return;
     try {
       const ctx = getAudioCtx();
-      if (ctx.state === "suspended") ctx.resume();
+      logDebug(`AudioContext state: ${ctx.state}, currentTime: ${ctx.currentTime.toFixed(3)}`);
+      if (ctx.state === "suspended") {
+        logDebug("Attempting to resume AudioContext...");
+        ctx.resume().then(() => {
+          logDebug(`AudioContext resumed successfully. State: ${ctx.state}`);
+        }).catch(err => {
+          logDebug(`AudioContext resume failed: ${err.message}`);
+        });
+      }
       // 3 ascending beeps then a long tone
       const notes = [523, 659, 784, 1047];
       const durations = [0.12, 0.12, 0.12, 0.55];
@@ -67,8 +99,12 @@ export default function SteamVaultCompanion() {
         osc.start(start);
         osc.stop(start + durations[i] + 0.05);
       });
-    } catch (e) { console.warn("Audio error:", e); }
-  }, [soundEnabled]);
+      logDebug("Oscillators scheduled successfully");
+    } catch (e) {
+      logDebug(`Audio error: ${e.message}`);
+    }
+  }, [soundEnabled, logDebug]);
+
 
   // Tick setiap detik agar countdown jam selalu update
   const [tick, setTick] = useState(0);
@@ -128,20 +164,45 @@ export default function SteamVaultCompanion() {
 
   // Loop alarm sampai user hentikan
   useEffect(() => {
+    logDebug(`alarm loop useEffect triggered. alarmRinging=${alarmRinging}, soundEnabled=${soundEnabled}`);
     if (alarmRinging && soundEnabled) {
+      logDebug("Starting alarm loop...");
       playAlarm(); // langsung bunyikan pertama kali
-      alarmLoopRef.current = setInterval(() => playAlarm(), 2000);
+      alarmLoopRef.current = setInterval(() => {
+        logDebug("alarm loop interval tick");
+        playAlarm();
+      }, 2000);
     } else {
+      logDebug("Clearing alarm loop...");
       clearInterval(alarmLoopRef.current);
     }
-    return () => clearInterval(alarmLoopRef.current);
-  }, [alarmRinging, soundEnabled, playAlarm]);
+    return () => {
+      logDebug("alarm loop cleanup running");
+      clearInterval(alarmLoopRef.current);
+    };
+  }, [alarmRinging, soundEnabled, playAlarm, logDebug]);
 
   useEffect(() => {
-    if (timerComplete) setAlarmRinging(true);
-  }, [timerComplete]);
+    if (timerComplete) {
+      logDebug("timerComplete became true, setting alarmRinging to true");
+      setAlarmRinging(true);
+    }
+  }, [timerComplete, logDebug]);
+
+  // Auto-reset runs when date changes (midnight) and purge expired runs
+  useEffect(() => {
+    const todayStr = new Date().toDateString();
+    const nowTs = Date.now();
+    // Keep only runs from today OR runs within the last 1 hour (sliding window)
+    const validRuns = runs.filter(r => r.date === todayStr || nowTs - r.id < HOUR_MS);
+    if (validRuns.length !== runs.length) {
+      logDebug(`Auto-resetting: Purged ${runs.length - validRuns.length} expired run(s) from previous days.`);
+      setRuns(validRuns);
+    }
+  }, [tick, runs, logDebug]);
 
   const addRun = () => {
+    ensureAudioCtx();
     if (capReached) return;
     const ts = Date.now();
     const run = { id: ts, date: new Date().toDateString(), time: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) };
@@ -149,12 +210,14 @@ export default function SteamVaultCompanion() {
   };
 
   const removeLastRun = () => {
+    ensureAudioCtx();
     const todayIds = todayRuns.map(r => r.id);
     if (todayIds.length === 0) return;
     setRuns(prev => prev.filter(r => r.id !== todayIds[todayIds.length - 1]));
   };
 
   const startTimer = () => {
+    ensureAudioCtx();
     setAlarmRinging(false);
     setTimerSeconds(RESET_SECONDS);
     setTimerComplete(false);
@@ -162,6 +225,7 @@ export default function SteamVaultCompanion() {
   };
 
   const stopTimer = () => {
+    ensureAudioCtx();
     clearInterval(timerRef.current);
     setTimerActive(false);
     setTimerSeconds(RESET_SECONDS);
@@ -169,7 +233,15 @@ export default function SteamVaultCompanion() {
     setAlarmRinging(false);
   };
 
-  const stopAlarm = () => setAlarmRinging(false);
+  const stopAlarm = () => {
+    ensureAudioCtx();
+    setAlarmRinging(false);
+  };
+
+
+
+
+
 
   const fmt = s => `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
   const timerPct = ((RESET_SECONDS - timerSeconds) / RESET_SECONDS) * 100;
@@ -472,12 +544,21 @@ export default function SteamVaultCompanion() {
         )}
       </div>
 
+      {/* Debug Logs */}
+      {debugLogs.length > 0 && (
+        <div style={{ background: "#060A12", borderTop: "1px solid #FF6B3533", padding: "10px 20px", maxHeight: 150, overflowY: "auto", fontFamily: "monospace", fontSize: 11, color: "#8B9BB4" }}>
+          <div style={{ color: "#FF6B35", fontWeight: "bold", marginBottom: 5 }}>🛠 DEBUG LOGS:</div>
+          {debugLogs.map((log, i) => <div key={i}>{log}</div>)}
+        </div>
+      )}
+
       {/* Footer */}
       <div style={{ background: "#0A0F1A", borderTop: "1px solid #1E3A5F33", padding: "10px 20px", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <span style={{ fontSize: 11, color: "#8B9BB444", letterSpacing: "0.05em" }}>
           © {new Date().getFullYear()} <span style={{ color: "#2EA8FF66", fontWeight: 600 }}>ChromeT</span> · WoW TBC Companion
         </span>
       </div>
+
     </div>
   );
 }
