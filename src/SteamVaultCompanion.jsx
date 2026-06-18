@@ -288,7 +288,7 @@ export default function SteamVaultCompanion() {
     setLoading(true);
 
     try {
-      const history = [...messages, userMsg].map(m => ({
+      const history = [...messages.slice(1), userMsg].map(m => ({
         role: m.role === "assistant" ? "model" : "user",
         parts: [{ text: m.content }],
       }));
