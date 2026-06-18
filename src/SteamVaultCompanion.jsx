@@ -44,6 +44,7 @@ export default function SteamVaultCompanion() {
     console.log(msg);
   }, []);
 
+
   const getAudioCtx = () => {
     if (!audioCtxRef.current) {
       logDebug("Creating new AudioContext");
@@ -104,6 +105,12 @@ export default function SteamVaultCompanion() {
       logDebug(`Audio error: ${e.message}`);
     }
   }, [soundEnabled, logDebug]);
+
+  const playAlarmRef = useRef(null);
+  useEffect(() => {
+    playAlarmRef.current = playAlarm;
+  }, [playAlarm]);
+
 
 
   // Tick setiap detik agar countdown jam selalu update
@@ -167,10 +174,10 @@ export default function SteamVaultCompanion() {
     logDebug(`alarm loop useEffect triggered. alarmRinging=${alarmRinging}, soundEnabled=${soundEnabled}`);
     if (alarmRinging && soundEnabled) {
       logDebug("Starting alarm loop...");
-      playAlarm(); // langsung bunyikan pertama kali
+      if (playAlarmRef.current) playAlarmRef.current(); // langsung bunyikan pertama kali
       alarmLoopRef.current = setInterval(() => {
         logDebug("alarm loop interval tick");
-        playAlarm();
+        if (playAlarmRef.current) playAlarmRef.current();
       }, 2000);
     } else {
       logDebug("Clearing alarm loop...");
@@ -180,7 +187,7 @@ export default function SteamVaultCompanion() {
       logDebug("alarm loop cleanup running");
       clearInterval(alarmLoopRef.current);
     };
-  }, [alarmRinging, soundEnabled, playAlarm, logDebug]);
+  }, [alarmRinging, soundEnabled, logDebug]);
 
   useEffect(() => {
     if (timerComplete) {
