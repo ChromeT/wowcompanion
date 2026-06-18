@@ -308,13 +308,22 @@ export default function SteamVaultCompanion() {
         }),
       });
       const data = await res.json();
-      const text = data.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("") || "Maaf, ada error. Coba lagi ya!";
-      setMessages(prev => [...prev, { role: "assistant", content: text }]);
+      if (data.error) {
+        const errMsg = data.error.message || "API error";
+        setMessages(prev => [...prev, { role: "assistant", content: `❌ Error dari Gemini: ${errMsg}` }]);
+        if (data.error.code === 400 || data.error.code === 403 || data.error.status === "INVALID_ARGUMENT") {
+          setGeminiKey("");
+          try { localStorage.removeItem("sv_gemini_key"); } catch {}
+        }
+      } else {
+        const text = data.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("") || "Maaf, ada error. Coba lagi ya!";
+        setMessages(prev => [...prev, { role: "assistant", content: text }]);
+      }
     } catch {
       setMessages(prev => [...prev, { role: "assistant", content: "Koneksi bermasalah. Coba lagi!" }]);
     }
     setLoading(false);
-  }, [input, loading, messages, dailyRuns.length, totalRuns]);
+  }, [input, loading, messages, geminiKey, dailyRuns.length, hourlyRuns.length, totalRuns]);
 
   const handleKey = e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } };
 
