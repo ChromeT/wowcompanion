@@ -259,25 +259,25 @@ export default function SteamVaultCompanion() {
   const dailyBars = Array.from({ length: DAILY_CAP }, (_, i) => i < todayRuns.length);
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0D1117", color: "#E2E8F0", fontFamily: "'Inter', system-ui, sans-serif", display: "flex", flexDirection: "column" }}>
+    <div style={{ minHeight: "100vh", background: "#050e14", color: "#e2eff2", fontFamily: "'Inter', system-ui, sans-serif", display: "flex", flexDirection: "column" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: #1C2333; } ::-webkit-scrollbar-thumb { background: #2EA8FF44; border-radius: 4px; }
+        ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: #0d2733; } ::-webkit-scrollbar-thumb { background: #00ffd244; border-radius: 4px; }
         .btn { cursor: pointer; border: none; border-radius: 8px; font-family: inherit; font-size: 14px; font-weight: 500; transition: all 0.15s; }
         .btn:active { transform: scale(0.97); }
-        .btn-primary { background: #2EA8FF; color: #0D1117; padding: 10px 20px; }
+        .btn-primary { background: #00ffd2; color: #050e14; padding: 10px 20px; }
         .btn-primary:hover { background: #5BBDFF; }
-        .btn-primary:disabled { background: #2EA8FF44; color: #8B9BB4; cursor: not-allowed; transform: none; }
-        .btn-ghost { background: transparent; color: #8B9BB4; border: 1px solid #2A3547; padding: 8px 16px; }
-        .btn-ghost:hover { background: #1C2333; color: #E2E8F0; }
-        .btn-danger { background: #FF6B3522; color: #FF6B35; border: 1px solid #FF6B3544; padding: 8px 16px; }
-        .btn-danger:hover { background: #FF6B3533; }
-        .btn-success { background: #4FFFB022; color: #4FFFB0; border: 1px solid #4FFFB044; padding: 10px 24px; }
-        .btn-success:hover { background: #4FFFB033; }
-        .tab { cursor: pointer; padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; border: none; background: transparent; color: #8B9BB4; transition: all 0.15s; }
-        .tab.active { background: #1C2333; color: #2EA8FF; }
-        .tab:hover:not(.active) { color: #E2E8F0; }
+        .btn-primary:disabled { background: #00ffd244; color: #6b93a3; cursor: not-allowed; transform: none; }
+        .btn-ghost { background: transparent; color: #6b93a3; border: 1px solid #2A3547; padding: 8px 16px; }
+        .btn-ghost:hover { background: #0d2733; color: #e2eff2; }
+        .btn-danger { background: #ff840022; color: #ff8400; border: 1px solid #ff840044; padding: 8px 16px; }
+        .btn-danger:hover { background: #ff840033; }
+        .btn-success { background: #3dffa322; color: #3dffa3; border: 1px solid #3dffa344; padding: 10px 24px; }
+        .btn-success:hover { background: #3dffa333; }
+        .tab { cursor: pointer; padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; border: none; background: transparent; color: #6b93a3; transition: all 0.15s; }
+        .tab.active { background: #0d2733; color: #00ffd2; }
+        .tab:hover:not(.active) { color: #e2eff2; }
         textarea { resize: none; outline: none; font-family: inherit; }
         .pulse { animation: pulse 2s ease-in-out infinite; }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
@@ -288,20 +288,20 @@ export default function SteamVaultCompanion() {
       `}</style>
 
       {/* Header */}
-      <div style={{ background: "#111827", borderBottom: "1px solid #1E3A5F", padding: "12px 20px", display: "flex", alignItems: "center", gap: 12 }}>
+      <div style={{ background: "#0a1b24", borderBottom: "1px solid #183e52", padding: "12px 20px", display: "flex", alignItems: "center", gap: 12 }}>
         <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-          <circle cx="14" cy="14" r="13" stroke="#2EA8FF" strokeWidth="1.5" />
-          <path d="M8 14 C8 10 11 7 14 7 C17 7 20 10 20 14" stroke="#2EA8FF" strokeWidth="1.5" strokeLinecap="round" />
-          <circle cx="14" cy="17" r="3" fill="#2EA8FF44" stroke="#2EA8FF" strokeWidth="1.5" />
-          <path d="M7 20 Q10 16 14 20 Q18 24 21 20" stroke="#4FFFB0" strokeWidth="1" strokeLinecap="round" opacity="0.6" />
+          <circle cx="14" cy="14" r="13" stroke="#00ffd2" strokeWidth="1.5" />
+          <path d="M8 14 C8 10 11 7 14 7 C17 7 20 10 20 14" stroke="#00ffd2" strokeWidth="1.5" strokeLinecap="round" />
+          <circle cx="14" cy="17" r="3" fill="#00ffd244" stroke="#00ffd2" strokeWidth="1.5" />
+          <path d="M7 20 Q10 16 14 20 Q18 24 21 20" stroke="#3dffa3" strokeWidth="1" strokeLinecap="round" opacity="0.6" />
         </svg>
         <div>
-          <div style={{ fontSize: 15, fontWeight: 600, color: "#E2E8F0", letterSpacing: "0.02em" }}>Steam Vault Companion</div>
-          <div style={{ fontSize: 11, color: "#8B9BB4" }}>Coilfang Reservoir · Solo Farming Tracker</div>
+          <div style={{ fontSize: 15, fontWeight: 600, color: "#e2eff2", letterSpacing: "0.02em" }}>Steam Vault Companion</div>
+          <div style={{ fontSize: 11, color: "#6b93a3" }}>Coilfang Reservoir · Solo Farming Tracker</div>
         </div>
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ fontSize: 11, color: "#2EA8FF", background: "#1C2333", border: "1px solid #2EA8FF33", borderRadius: 6, padding: "5px 10px", fontFamily: "'JetBrains Mono', monospace", display: "flex", alignItems: "center", gap: 6, userSelect: "none" }}>
-            <span style={{ color: "#4FFFB0" }}>🕒</span>
+          <div style={{ fontSize: 11, color: "#00ffd2", background: "#0d2733", border: "1px solid #00ffd233", borderRadius: 6, padding: "5px 10px", fontFamily: "'JetBrains Mono', monospace", display: "flex", alignItems: "center", gap: 6, userSelect: "none" }}>
+            <span style={{ color: "#3dffa3" }}>🕒</span>
             <span>{new Date().toLocaleDateString("id-ID", { weekday: 'short', day: '2-digit', month: 'short' })} · {new Date().toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
           </div>
           <div style={{ display: "flex", gap: 4 }}>
@@ -315,9 +315,9 @@ export default function SteamVaultCompanion() {
       </div>
 
       {/* Tip bar */}
-      <div style={{ background: "#0F1929", borderBottom: "1px solid #1E3A5F33", padding: "8px 20px", display: "flex", alignItems: "center", gap: 8 }}>
-        <span style={{ fontSize: 11, color: "#2EA8FF", fontWeight: 600, whiteSpace: "nowrap" }}>💡 TIP</span>
-        <span key={tipIndex} className="tip-fade" style={{ fontSize: 12, color: "#8B9BB4" }}>{STEAM_TIPS[tipIndex]}</span>
+      <div style={{ background: "#081d29", borderBottom: "1px solid #183e5233", padding: "8px 20px", display: "flex", alignItems: "center", gap: 8 }}>
+        <span style={{ fontSize: 11, color: "#00ffd2", fontWeight: 600, whiteSpace: "nowrap" }}>💡 TIP</span>
+        <span key={tipIndex} className="tip-fade" style={{ fontSize: 12, color: "#6b93a3" }}>{STEAM_TIPS[tipIndex]}</span>
       </div>
 
       <div style={{ flex: 1, overflow: "hidden", display: "flex" }}>
@@ -329,34 +329,34 @@ export default function SteamVaultCompanion() {
             {/* Stats row */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10 }}>
               {[
-                { label: "Run Jam Ini", value: hourlyRuns.length, sub: `dari ${HOURLY_CAP} / jam`, color: hourlyCapped ? "#FF6B35" : "#2EA8FF" },
-                { label: "Sisa Jam Ini", value: remainingHourly, sub: hourlyCapped ? fmtSlot(nextSlotSec) + " buka" : "slot tersisa", color: hourlyCapped ? "#FF6B35" : "#4FFFB0" },
-                { label: "Run Hari Ini", value: todayRuns.length, sub: `dari ${DAILY_CAP} / hari`, color: dailyCapped ? "#FF6B35" : "#8B9BB4" },
-                { label: "Total Lifetime", value: totalRuns, sub: "semua run", color: "#8B9BB4" },
+                { label: "Run Jam Ini", value: hourlyRuns.length, sub: `dari ${HOURLY_CAP} / jam`, color: hourlyCapped ? "#ff8400" : "#00ffd2" },
+                { label: "Sisa Jam Ini", value: remainingHourly, sub: hourlyCapped ? fmtSlot(nextSlotSec) + " buka" : "slot tersisa", color: hourlyCapped ? "#ff8400" : "#3dffa3" },
+                { label: "Run Hari Ini", value: todayRuns.length, sub: `dari ${DAILY_CAP} / hari`, color: dailyCapped ? "#ff8400" : "#6b93a3" },
+                { label: "Total Lifetime", value: totalRuns, sub: "semua run", color: "#6b93a3" },
               ].map((s, i) => (
-                <div key={i} style={{ background: "#111827", border: "1px solid #1E3A5F", borderRadius: 10, padding: "12px 14px" }}>
-                  <div style={{ fontSize: 10, color: "#8B9BB4", marginBottom: 4, fontWeight: 500 }}>{s.label}</div>
+                <div key={i} style={{ background: "#0a1b24", border: "1px solid #183e52", borderRadius: 10, padding: "12px 14px" }}>
+                  <div style={{ fontSize: 10, color: "#6b93a3", marginBottom: 4, fontWeight: 500 }}>{s.label}</div>
                   <div style={{ fontSize: 28, fontWeight: 600, color: s.color, fontFamily: "'JetBrains Mono', monospace", lineHeight: 1 }}>{s.value}</div>
-                  <div style={{ fontSize: 10, color: "#8B9BB455", marginTop: 4 }}>{s.sub}</div>
+                  <div style={{ fontSize: 10, color: "#6b93a355", marginTop: 4 }}>{s.sub}</div>
                 </div>
               ))}
             </div>
 
             {/* Cap progress bars */}
-            <div style={{ background: "#111827", border: "1px solid #1E3A5F", borderRadius: 10, padding: 16, display: "flex", flexDirection: "column", gap: 14 }}>
+            <div style={{ background: "#0a1b24", border: "1px solid #183e52", borderRadius: 10, padding: 16, display: "flex", flexDirection: "column", gap: 14 }}>
               {/* Hourly */}
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                  <span style={{ fontSize: 11, color: "#8B9BB4", fontWeight: 500 }}>INSTANCE / JAM</span>
-                  <span style={{ fontSize: 11, color: hourlyCapped ? "#FF6B35" : "#2EA8FF", fontFamily: "'JetBrains Mono'" }}>{hourlyRuns.length}/{HOURLY_CAP}</span>
+                  <span style={{ fontSize: 11, color: "#6b93a3", fontWeight: 500 }}>INSTANCE / JAM</span>
+                  <span style={{ fontSize: 11, color: hourlyCapped ? "#ff8400" : "#00ffd2", fontFamily: "'JetBrains Mono'" }}>{hourlyRuns.length}/{HOURLY_CAP}</span>
                 </div>
                 <div style={{ display: "flex", gap: 5 }}>
                   {hourlyBars.map((filled, i) => (
-                    <div key={i} style={{ flex: 1, height: 22, borderRadius: 4, background: filled ? "#2EA8FF" : "#1C2333", transition: "background 0.3s", boxShadow: filled ? "0 0 6px #2EA8FF55" : "none" }} />
+                    <div key={i} style={{ flex: 1, height: 22, borderRadius: 4, background: filled ? "#00ffd2" : "#0d2733", transition: "background 0.3s", boxShadow: filled ? "0 0 6px #00ffd255" : "none" }} />
                   ))}
                 </div>
                 {hourlyCapped && (
-                  <div style={{ fontSize: 11, color: "#FF6B35", marginTop: 7, display: "flex", alignItems: "center", gap: 6 }}>
+                  <div style={{ fontSize: 11, color: "#ff8400", marginTop: 7, display: "flex", alignItems: "center", gap: 6 }}>
                     <span className="pulse">⏳</span>
                     Slot berikutnya terbuka dalam <span style={{ fontFamily: "'JetBrains Mono'", fontWeight: 600, marginLeft: 4 }}>{fmtSlot(nextSlotSec)}</span>
                   </div>
@@ -365,15 +365,15 @@ export default function SteamVaultCompanion() {
               {/* Daily */}
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                  <span style={{ fontSize: 11, color: "#8B9BB4", fontWeight: 500 }}>INSTANCE / HARI</span>
-                  <span style={{ fontSize: 11, color: dailyCapped ? "#FF6B35" : "#8B9BB4", fontFamily: "'JetBrains Mono'" }}>{todayRuns.length}/{DAILY_CAP}</span>
+                  <span style={{ fontSize: 11, color: "#6b93a3", fontWeight: 500 }}>INSTANCE / HARI</span>
+                  <span style={{ fontSize: 11, color: dailyCapped ? "#ff8400" : "#6b93a3", fontFamily: "'JetBrains Mono'" }}>{todayRuns.length}/{DAILY_CAP}</span>
                 </div>
                 <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
                   {dailyBars.map((filled, i) => (
-                    <div key={i} style={{ width: "calc(10% - 3px)", height: 14, borderRadius: 3, background: filled ? (i >= 25 ? "#FF6B35" : "#4FFFB066") : "#1C2333", transition: "background 0.3s" }} />
+                    <div key={i} style={{ width: "calc(10% - 3px)", height: 14, borderRadius: 3, background: filled ? (i >= 25 ? "#ff8400" : "#3dffa366") : "#0d2733", transition: "background 0.3s" }} />
                   ))}
                 </div>
-                {dailyCapped && <div style={{ fontSize: 11, color: "#FF6B35", marginTop: 7, textAlign: "center" }}>⚠ Cap harian 30 tercapai! Reset besok pagi.</div>}
+                {dailyCapped && <div style={{ fontSize: 11, color: "#ff8400", marginTop: 7, textAlign: "center" }}>⚠ Cap harian 30 tercapai! Reset besok pagi.</div>}
               </div>
             </div>
 
@@ -390,34 +390,34 @@ export default function SteamVaultCompanion() {
             </div>
 
             {/* Reset Timer */}
-            <div style={{ background: "#111827", border: `1px solid ${timerActive ? "#2EA8FF44" : timerComplete ? "#4FFFB044" : "#1E3A5F"}`, borderRadius: 10, padding: 16 }}>
+            <div style={{ background: "#0a1b24", border: `1px solid ${timerActive ? "#00ffd244" : timerComplete ? "#3dffa344" : "#183e52"}`, borderRadius: 10, padding: 16 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                 <div>
-                  <div style={{ fontSize: 12, color: "#8B9BB4", fontWeight: 500 }}>DUNGEON RESET TIMER</div>
-                  <div style={{ fontSize: 11, color: "#8B9BB455", marginTop: 2 }}>Log out 5 menit untuk reset instance</div>
+                  <div style={{ fontSize: 12, color: "#6b93a3", fontWeight: 500 }}>DUNGEON RESET TIMER</div>
+                  <div style={{ fontSize: 11, color: "#6b93a355", marginTop: 2 }}>Log out 5 menit untuk reset instance</div>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <button
                     onClick={() => { setSoundEnabled(v => !v); if (alarmRinging) setAlarmRinging(false); }}
                     title={soundEnabled ? "Matikan alarm" : "Nyalakan alarm"}
-                    style={{ background: soundEnabled ? "#2EA8FF22" : "#8B9BB422", border: `1px solid ${soundEnabled ? "#2EA8FF55" : "#8B9BB455"}`, borderRadius: 6, padding: "4px 10px", cursor: "pointer", fontSize: 16, lineHeight: 1, color: soundEnabled ? "#2EA8FF" : "#8B9BB4", transition: "all 0.15s" }}
+                    style={{ background: soundEnabled ? "#00ffd222" : "#6b93a322", border: `1px solid ${soundEnabled ? "#00ffd255" : "#6b93a355"}`, borderRadius: 6, padding: "4px 10px", cursor: "pointer", fontSize: 16, lineHeight: 1, color: soundEnabled ? "#00ffd2" : "#6b93a3", transition: "all 0.15s" }}
                     aria-label={soundEnabled ? "Mute alarm" : "Unmute alarm"}
                   >
                     {soundEnabled ? "🔔" : "🔕"}
                   </button>
-                  <div style={{ fontFamily: "'JetBrains Mono'", fontSize: 36, fontWeight: 600, color: timerComplete ? "#4FFFB0" : timerActive ? "#2EA8FF" : "#E2E8F0" }}>
+                  <div style={{ fontFamily: "'JetBrains Mono'", fontSize: 36, fontWeight: 600, color: timerComplete ? "#3dffa3" : timerActive ? "#00ffd2" : "#e2eff2" }}>
                     {fmt(timerSeconds)}
                   </div>
                 </div>
               </div>
 
               {/* Timer progress bar */}
-              <div style={{ background: "#1C2333", borderRadius: 4, height: 6, marginBottom: 12, overflow: "hidden" }}>
-                <div style={{ height: "100%", borderRadius: 4, background: timerComplete ? "#4FFFB0" : "#2EA8FF", width: `${timerPct}%`, transition: "width 1s linear" }} />
+              <div style={{ background: "#0d2733", borderRadius: 4, height: 6, marginBottom: 12, overflow: "hidden" }}>
+                <div style={{ height: "100%", borderRadius: 4, background: timerComplete ? "#3dffa3" : "#00ffd2", width: `${timerPct}%`, transition: "width 1s linear" }} />
               </div>
 
               {timerComplete && (
-                <div style={{ background: "#4FFFB011", border: "1px solid #4FFFB033", borderRadius: 6, padding: "8px 12px", marginBottom: 10, fontSize: 13, color: "#4FFFB0", textAlign: "center" }}>
+                <div style={{ background: "#3dffa311", border: "1px solid #3dffa333", borderRadius: 6, padding: "8px 12px", marginBottom: 10, fontSize: 13, color: "#3dffa3", textAlign: "center" }}>
                   ✅ Reset selesai! Log in sekarang dan masuk dungeon.
                 </div>
               )}
@@ -427,7 +427,7 @@ export default function SteamVaultCompanion() {
                   <button
                     className="btn"
                     onClick={stopAlarm}
-                    style={{ flex: 1, background: "#FF6B3522", color: "#FF6B35", border: "1px solid #FF6B3544", fontSize: 14, fontWeight: 600, animation: "pulse 0.8s ease-in-out infinite" }}
+                    style={{ flex: 1, background: "#ff840022", color: "#ff8400", border: "1px solid #ff840044", fontSize: 14, fontWeight: 600, animation: "pulse 0.8s ease-in-out infinite" }}
                   >
                     🔕 Hentikan Alarm
                   </button>
@@ -443,7 +443,7 @@ export default function SteamVaultCompanion() {
                 {timerActive && (
                   <>
                     <button className="btn btn-ghost" style={{ flex: 1 }} onClick={stopTimer}>Batal</button>
-                    <div style={{ flex: 2, background: "#1C2333", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: "#8B9BB4" }}>
+                    <div style={{ flex: 2, background: "#0d2733", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: "#6b93a3" }}>
                       <span className="pulse">●</span>&nbsp;Menunggu reset...
                     </div>
                   </>
@@ -453,14 +453,14 @@ export default function SteamVaultCompanion() {
 
             {/* Today's run log */}
             {todayRuns.length > 0 && (
-              <div style={{ background: "#111827", border: "1px solid #1E3A5F", borderRadius: 10, padding: 16 }}>
-                <div style={{ fontSize: 12, color: "#8B9BB4", fontWeight: 500, marginBottom: 10 }}>LOG HARI INI</div>
+              <div style={{ background: "#0a1b24", border: "1px solid #183e52", borderRadius: 10, padding: 16 }}>
+                <div style={{ fontSize: 12, color: "#6b93a3", fontWeight: 500, marginBottom: 10 }}>LOG HARI INI</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   {todayRuns.map((r, i) => (
                     <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <div style={{ width: 20, height: 20, background: "#2EA8FF22", border: "1px solid #2EA8FF44", borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "#2EA8FF", fontFamily: "'JetBrains Mono'" }}>{i + 1}</div>
-                      <div style={{ fontSize: 13, color: "#E2E8F0" }}>Run #{i + 1}</div>
-                      <div style={{ marginLeft: "auto", fontSize: 11, color: "#8B9BB4", fontFamily: "'JetBrains Mono'" }}>{r.time}</div>
+                      <div style={{ width: 20, height: 20, background: "#00ffd222", border: "1px solid #00ffd244", borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "#00ffd2", fontFamily: "'JetBrains Mono'" }}>{i + 1}</div>
+                      <div style={{ fontSize: 13, color: "#e2eff2" }}>Run #{i + 1}</div>
+                      <div style={{ marginLeft: "auto", fontSize: 11, color: "#6b93a3", fontFamily: "'JetBrains Mono'" }}>{r.time}</div>
                     </div>
                   ))}
                 </div>
@@ -473,10 +473,10 @@ export default function SteamVaultCompanion() {
         {activeTab === "chat" && (
           <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
             {/* Context bar */}
-            <div style={{ background: "#111827", borderBottom: "1px solid #1E3A5F33", padding: "8px 16px", display: "flex", gap: 14, fontSize: 11, flexWrap: "wrap" }}>
-              <span style={{ color: "#8B9BB4" }}>Jam ini: <span style={{ color: hourlyCapped ? "#FF6B35" : "#2EA8FF", fontFamily: "monospace" }}>{hourlyRuns.length}/{HOURLY_CAP}</span></span>
-              <span style={{ color: "#8B9BB4" }}>Hari ini: <span style={{ color: dailyCapped ? "#FF6B35" : "#4FFFB0", fontFamily: "monospace" }}>{todayRuns.length}/{DAILY_CAP}</span></span>
-              <span style={{ color: "#8B9BB4" }}>Total: <span style={{ color: "#E2E8F0", fontFamily: "monospace" }}>{totalRuns}</span></span>
+            <div style={{ background: "#0a1b24", borderBottom: "1px solid #183e5233", padding: "8px 16px", display: "flex", gap: 14, fontSize: 11, flexWrap: "wrap" }}>
+              <span style={{ color: "#6b93a3" }}>Jam ini: <span style={{ color: hourlyCapped ? "#ff8400" : "#00ffd2", fontFamily: "monospace" }}>{hourlyRuns.length}/{HOURLY_CAP}</span></span>
+              <span style={{ color: "#6b93a3" }}>Hari ini: <span style={{ color: dailyCapped ? "#ff8400" : "#3dffa3", fontFamily: "monospace" }}>{todayRuns.length}/{DAILY_CAP}</span></span>
+              <span style={{ color: "#6b93a3" }}>Total: <span style={{ color: "#e2eff2", fontFamily: "monospace" }}>{totalRuns}</span></span>
             </div>
 
             {/* Messages */}
@@ -485,8 +485,8 @@ export default function SteamVaultCompanion() {
                 <div key={i} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start" }}>
                   <div style={{
                     maxWidth: "80%", padding: "10px 14px", borderRadius: m.role === "user" ? "12px 12px 2px 12px" : "12px 12px 12px 2px",
-                    background: m.role === "user" ? "#2EA8FF" : "#1C2333",
-                    color: m.role === "user" ? "#0D1117" : "#E2E8F0",
+                    background: m.role === "user" ? "#00ffd2" : "#0d2733",
+                    color: m.role === "user" ? "#050e14" : "#e2eff2",
                     fontSize: 14, lineHeight: 1.6, whiteSpace: "pre-wrap"
                   }}>
                     {m.content}
@@ -495,9 +495,9 @@ export default function SteamVaultCompanion() {
               ))}
               {loading && (
                 <div style={{ display: "flex", justifyContent: "flex-start" }}>
-                  <div style={{ background: "#1C2333", borderRadius: "12px 12px 12px 2px", padding: "10px 16px", display: "flex", gap: 4, alignItems: "center" }}>
+                  <div style={{ background: "#0d2733", borderRadius: "12px 12px 12px 2px", padding: "10px 16px", display: "flex", gap: 4, alignItems: "center" }}>
                     {[0, 1, 2].map(i => (
-                      <div key={i} style={{ width: 6, height: 6, background: "#2EA8FF", borderRadius: "50%", animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite` }} />
+                      <div key={i} style={{ width: 6, height: 6, background: "#00ffd2", borderRadius: "50%", animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite` }} />
                     ))}
                   </div>
                 </div>
@@ -520,7 +520,7 @@ export default function SteamVaultCompanion() {
                 value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKey}
                 placeholder="Tanya seputar Steam Vault... (Enter untuk kirim)"
                 rows={2}
-                style={{ flex: 1, background: "#1C2333", border: "1px solid #2A3547", borderRadius: 8, padding: "10px 12px", color: "#E2E8F0", fontSize: 14, lineHeight: 1.5 }}
+                style={{ flex: 1, background: "#0d2733", border: "1px solid #2A3547", borderRadius: 8, padding: "10px 12px", color: "#e2eff2", fontSize: 14, lineHeight: 1.5 }}
               />
               <button className="btn btn-primary" onClick={sendMessage} disabled={loading || !input.trim()} style={{ padding: "10px 16px", height: 42 }}>
                 {loading ? "⏳" : "↑"}
@@ -533,9 +533,9 @@ export default function SteamVaultCompanion() {
 
 
       {/* Footer */}
-      <div style={{ background: "#0A0F1A", borderTop: "1px solid #1E3A5F33", padding: "10px 20px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <span style={{ fontSize: 11, color: "#8B9BB444", letterSpacing: "0.05em" }}>
-          © {new Date().getFullYear()} <span style={{ color: "#2EA8FF66", fontWeight: 600 }}>ChromeT</span> · WoW TBC Companion
+      <div style={{ background: "#040b0f", borderTop: "1px solid #183e5233", padding: "10px 20px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <span style={{ fontSize: 11, color: "#6b93a344", letterSpacing: "0.05em" }}>
+          © {new Date().getFullYear()} <span style={{ color: "#00ffd266", fontWeight: 600 }}>ChromeT</span> · WoW TBC Companion
         </span>
       </div>
 
