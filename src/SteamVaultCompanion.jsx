@@ -32,6 +32,9 @@ export default function SteamVaultCompanion() {
   const [activeTab, setActiveTab] = useState("tracker");
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [alarmRinging, setAlarmRinging] = useState(false);
+  const [geminiKey, setGeminiKey] = useState(() => {
+    try { return localStorage.getItem("sv_gemini_key") || ""; } catch { return ""; }
+  });
   const chatEndRef = useRef(null);
   const timerRef = useRef(null);
   const audioCtxRef = useRef(null);
@@ -285,19 +288,27 @@ export default function SteamVaultCompanion() {
     setLoading(true);
 
     try {
-      const history = [...messages, userMsg].map(m => ({ role: m.role, content: m.content }));
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
+      const history = [...messages, userMsg].map(m => ({
+        role: m.role === "assistant" ? "model" : "user",
+        parts: [{ text: m.content }],
+      }));
+      if (!geminiKey) {
+        setMessages(prev => [...prev, { role: "assistant", content: "⚠ API Key belum diset. Masukkan Gemini API Key di kolom di atas chat terlebih dahulu." }]);
+        setLoading(false);
+        return;
+      }
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "claude-sonnet-4-6",
-          max_tokens: 1000,
-          system: `Kamu adalah companion AI untuk World of Warcraft: The Burning Crusade (TBC Classic). Bantu pemain dengan segala topik seputar TBC — class & spec, talent build, rotasi, gear & BIS list, enchant & gem, dungeon & raid (Karazhan, Gruul, Magtheridon, SSC, TK, MH, BT, Sunwell), PvP & Arena, profesi, reputasi, gold farming, dan tips umum lainnya. Jawab dalam bahasa Indonesia yang santai, jelas, dan informatif. Jika ada data tracker: run jam ini ${hourlyRuns.length}/${HOURLY_CAP}, run 24 jam ini ${dailyRuns.length}/${DAILY_CAP} (dungeon Steam Vault). Instance limit TBC: 5/jam, 30/hari.`,
-          messages: history,
+          systemInstruction: {
+            parts: [{ text: `Kamu adalah companion AI untuk World of Warcraft: The Burning Crusade (TBC Classic). Bantu pemain dengan segala topik seputar TBC — class & spec, talent build, rotasi, gear & BIS list, enchant & gem, dungeon & raid (Karazhan, Gruul, Magtheridon, SSC, TK, MH, BT, Sunwell), PvP & Arena, profesi, reputasi, gold farming, dan tips umum lainnya. Jawab dalam bahasa Indonesia yang santai, jelas, dan informatif. Jika ada data tracker: run jam ini ${hourlyRuns.length}/${HOURLY_CAP}, run 24 jam ini ${dailyRuns.length}/${DAILY_CAP} (dungeon Steam Vault). Instance limit TBC: 5/jam, 30/hari.` }],
+          },
+          contents: history,
         }),
       });
       const data = await res.json();
-      const text = data.content?.map(b => b.text || "").join("") || "Maaf, ada error. Coba lagi ya!";
+      const text = data.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("") || "Maaf, ada error. Coba lagi ya!";
       setMessages(prev => [...prev, { role: "assistant", content: text }]);
     } catch {
       setMessages(prev => [...prev, { role: "assistant", content: "Koneksi bermasalah. Coba lagi!" }]);
@@ -664,11 +675,30 @@ export default function SteamVaultCompanion() {
         {activeTab === "chat" && (
           <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
             {/* Context bar */}
-            <div style={{ background: "#0a1b24", borderBottom: "1px solid #183e5233", padding: "8px 16px", display: "flex", gap: 14, fontSize: 11, flexWrap: "wrap" }}>
+            <div style={{ background: "#0a1b24", borderBottom: "1px solid #183e5233", padding: "8px 16px", display: "flex", gap: 14, fontSize: 11, flexWrap: "wrap", alignItems: "center" }}>
               <span style={{ color: "#6b93a3" }}>Jam ini: <span style={{ color: hourlyCapped ? "#ff8400" : "#00ffd2", fontFamily: "monospace" }}>{hourlyRuns.length}/{HOURLY_CAP}</span></span>
               <span style={{ color: "#6b93a3" }}>24 Jam ini: <span style={{ color: dailyCapped ? "#ff8400" : "#3dffa3", fontFamily: "monospace" }}>{dailyRuns.length}/{DAILY_CAP}</span></span>
               <span style={{ color: "#6b93a3" }}>Total: <span style={{ color: "#e2eff2", fontFamily: "monospace" }}>{totalRuns}</span></span>
             </div>
+            {!geminiKey && (
+              <div style={{ background: "#0a1b24", borderBottom: "1px solid #183e5233", padding: "8px 16px", display: "flex", gap: 8, alignItems: "center" }}>
+                <span style={{ fontSize: 11, color: "#ff8400", whiteSpace: "nowrap" }}>🔑 API Key:</span>
+                <input
+                  type="password"
+                  placeholder="Masukkan Gemini API Key..."
+                  style={{ flex: 1, background: "#0d2733", border: "1px solid #183e52", borderRadius: 6, padding: "5px 10px", color: "#e2eff2", fontSize: 12, fontFamily: "inherit", outline: "none" }}
+                  onKeyDown={e => {
+                    if (e.key === "Enter" && e.target.value.trim()) {
+                      const key = e.target.value.trim();
+                      setGeminiKey(key);
+                      try { localStorage.setItem("sv_gemini_key", key); } catch {}
+                      e.target.value = "";
+                    }
+                  }}
+                />
+                <span style={{ fontSize: 10, color: "#6b93a3" }}>Enter to save</span>
+              </div>
+            )}
 
 
             {/* Messages */}
