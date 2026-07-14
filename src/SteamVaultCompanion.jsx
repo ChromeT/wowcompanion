@@ -233,6 +233,7 @@ export default function SteamVaultCompanion() {
 
   const startTimer = () => {
     ensureAudioCtx();
+    addRun();
     setAlarmRinging(false);
     setTimerSeconds(RESET_SECONDS);
     setTimerComplete(false);
@@ -246,6 +247,7 @@ export default function SteamVaultCompanion() {
     setTimerSeconds(RESET_SECONDS);
     setTimerComplete(false);
     setAlarmRinging(false);
+    removeLastRun();
   };
 
   const stopAlarm = () => {
