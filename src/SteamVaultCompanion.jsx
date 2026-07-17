@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { db } from "./firebase";
 
 const DAILY_CAP = 30;
 const HOURLY_CAP = 5;
@@ -17,9 +19,10 @@ const STEAM_TIPS = [
 ];
 
 export default function SteamVaultCompanion() {
-  const [runs, setRuns] = useState(() => {
-    try { return JSON.parse(localStorage.getItem("sv_runs") || "[]"); } catch { return []; }
-  });
+  const [username, setUsername] = useState(() => localStorage.getItem("sv_username") || "");
+  const [usernameInput, setUsernameInput] = useState("");
+  const [runs, setRuns] = useState([]);
+  const [isLoadingRuns, setIsLoadingRuns] = useState(false);
   const [timerActive, setTimerActive] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(RESET_SECONDS);
   const [timerComplete, setTimerComplete] = useState(false);
@@ -161,9 +164,50 @@ export default function SteamVaultCompanion() {
 
 
 
+  const saveRunsToFirebase = useCallback((newRuns) => {
+    if (username) {
+      setDoc(doc(db, "users", username), { runs: newRuns }).catch(console.error);
+    }
+  }, [username]);
+
   useEffect(() => {
-    try { localStorage.setItem("sv_runs", JSON.stringify(runs)); } catch {}
-  }, [runs]);
+    if (username) {
+      setIsLoadingRuns(true);
+      const fetchRuns = async () => {
+        try {
+          const docRef = doc(db, "users", username);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            setRuns(docSnap.data().runs || []);
+          } else {
+            setRuns([]);
+          }
+        } catch (err) {
+          console.error("Failed to load runs:", err);
+        } finally {
+          setIsLoadingRuns(false);
+        }
+      };
+      fetchRuns();
+    }
+  }, [username]);
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    const trimmed = usernameInput.trim();
+    if (trimmed) {
+      localStorage.setItem("sv_username", trimmed);
+      setUsername(trimmed);
+      setRuns([]);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("sv_username");
+    setUsername("");
+    setUsernameInput("");
+    setRuns([]);
+  };
 
   useEffect(() => {
     const t = setInterval(() => setTipIndex(i => (i + 1) % STEAM_TIPS.length), 8000);
@@ -208,12 +252,14 @@ export default function SteamVaultCompanion() {
 
   // Purge expired runs (older than 24 hours)
   useEffect(() => {
+    if (!username || isLoadingRuns) return;
     const nowTs = Date.now();
     const validRuns = runs.filter(r => nowTs - r.id < 24 * 3600 * 1000);
     if (validRuns.length !== runs.length) {
       setRuns(validRuns);
+      saveRunsToFirebase(validRuns);
     }
-  }, [tick, runs]);
+  }, [tick, runs, username, isLoadingRuns, saveRunsToFirebase]);
 
 
   const addRun = () => {
@@ -221,13 +267,17 @@ export default function SteamVaultCompanion() {
     if (capReached) return;
     const ts = Date.now();
     const run = { id: ts, date: new Date().toDateString(), time: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) };
-    setRuns(prev => [...prev, run]);
+    const newRuns = [...runs, run];
+    setRuns(newRuns);
+    saveRunsToFirebase(newRuns);
   };
 
   const removeLastRun = () => {
     ensureAudioCtx();
     if (runs.length === 0) return;
-    setRuns(prev => prev.slice(0, -1));
+    const newRuns = runs.slice(0, -1);
+    setRuns(newRuns);
+    saveRunsToFirebase(newRuns);
   };
 
 
@@ -265,6 +315,41 @@ export default function SteamVaultCompanion() {
 
   const hourlyBars = Array.from({ length: HOURLY_CAP }, (_, i) => i < hourlyRuns.length);
   const dailyBars = Array.from({ length: DAILY_CAP }, (_, i) => i < dailyRuns.length);
+
+  if (!username) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#050e14", display: "flex", justifyContent: "center", alignItems: "center", color: "#e2eff2", fontFamily: "'Inter', system-ui, sans-serif" }}>
+        <style>{`
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap');
+          * { box-sizing: border-box; margin: 0; padding: 0; }
+          .btn { cursor: pointer; border: none; border-radius: 8px; font-family: inherit; font-size: 14px; font-weight: 500; transition: all 0.15s; }
+          .btn:active { transform: scale(0.97); }
+          .btn-primary { background: #00ffd2; color: #050e14; padding: 10px 20px; }
+          .btn-primary:hover { background: #33ffdb; }
+        `}</style>
+        <form onSubmit={handleLogin} style={{ background: "#0a1b24", padding: 40, borderRadius: 16, border: "1px solid #183e52", textAlign: "center", boxShadow: "0 8px 32px rgba(0,0,0,0.6)", maxWidth: 400, width: "90%" }}>
+          <div style={{ marginBottom: 24 }}>
+            <svg width="48" height="48" viewBox="0 0 28 28" fill="none" style={{ margin: "0 auto" }}>
+              <circle cx="14" cy="14" r="13" stroke="#00ffd2" strokeWidth="1.5" />
+              <path d="M8 14 C8 10 11 7 14 7 C17 7 20 10 20 14" stroke="#00ffd2" strokeWidth="1.5" strokeLinecap="round" />
+              <circle cx="14" cy="17" r="3" fill="#00ffd244" stroke="#00ffd2" strokeWidth="1.5" />
+              <path d="M7 20 Q10 16 14 20 Q18 24 21 20" stroke="#3dffa3" strokeWidth="1" strokeLinecap="round" opacity="0.6" />
+            </svg>
+          </div>
+          <h2 style={{ color: "#00ffd2", marginBottom: 8, fontSize: 20 }}>Steam Vault Companion</h2>
+          <p style={{ color: "#6b93a3", marginBottom: 30, fontSize: 13 }}>Enter your nickname to continue</p>
+          <input 
+            autoFocus
+            value={usernameInput}
+            onChange={(e) => setUsernameInput(e.target.value)}
+            placeholder="Nickname..."
+            style={{ padding: "12px 16px", borderRadius: 8, border: "1px solid #183e52", background: "#0d2733", color: "#00ffd2", width: "100%", marginBottom: 20, outline: "none", fontSize: 15, fontFamily: "'JetBrains Mono', monospace" }}
+          />
+          <button type="submit" className="btn btn-primary" style={{ width: "100%", fontSize: 16, padding: "12px 0" }}>Login</button>
+        </form>
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight: "100vh", background: "#050e14", color: "#e2eff2", fontFamily: "'Inter', system-ui, sans-serif", display: "flex", flexDirection: "column" }}>
@@ -305,6 +390,10 @@ export default function SteamVaultCompanion() {
           <div style={{ fontSize: 11, color: "#6b93a3" }}>Coilfang Reservoir · Solo Farming Tracker</div>
         </div>
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginRight: 10 }}>
+            <span style={{ color: "#e2eff2", fontSize: 13, fontWeight: 500 }}>👤 {username}</span>
+            <button onClick={handleLogout} className="btn btn-ghost" style={{ padding: "4px 10px", fontSize: 11, borderRadius: 6 }}>Logout</button>
+          </div>
           <div style={{ fontSize: 11, color: "#00ffd2", background: "#0d2733", border: "1px solid #00ffd233", borderRadius: 6, padding: "5px 10px", fontFamily: "'JetBrains Mono', monospace", display: "flex", alignItems: "center", gap: 6, userSelect: "none" }}>
             <span style={{ color: "#3dffa3" }}>🕒</span>
             <span>{new Date().toLocaleDateString("id-ID", { weekday: 'short', day: '2-digit', month: 'short' })} · {new Date().toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
@@ -580,7 +669,9 @@ export default function SteamVaultCompanion() {
                             style={{ marginLeft: "auto", background: "transparent", border: "none", color: "#ff8400", fontSize: 11, cursor: "pointer" }}
                             onClick={() => {
                               if (confirm("Hapus run ini?")) {
-                                setRuns(prev => prev.filter(item => item.id !== r.id));
+                                const newRuns = runs.filter(item => item.id !== r.id);
+                                setRuns(newRuns);
+                                saveRunsToFirebase(newRuns);
                               }
                             }}
                           >
