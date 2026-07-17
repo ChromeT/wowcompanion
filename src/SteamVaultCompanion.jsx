@@ -7,16 +7,6 @@ const HOURLY_CAP = 5;
 const HOUR_MS = 3600 * 1000;
 const RESET_SECONDS = 300;
 
-const STEAM_TIPS = [
-  "Pastikan buff Heroism/Bloodlust aktif sebelum boss terakhir.",
-  "Skip trash dengan stealth jika bisa untuk efisiensi waktu.",
-  "Interrupt spell Kalithresh saat dia summon Naga Guardian.",
-  "Warlord Kalithresh akan makin kuat jika dia ngedrain vials — fokus DPS dia dulu.",
-  "Hydromancer Thespia: interrupt Lung Burst dan hindari cloud-nya.",
-  "Mekgineer Steamrigger: bunuh engineer kecil-kecilnya duluan!",
-  "Gunakan LOS (line of sight) untuk pull trash lebih aman.",
-  "Cek gear drop priority sebelum run — jangan nge-greed yang tidak perlu.",
-];
 
 export default function SteamVaultCompanion() {
   const [username, setUsername] = useState(() => localStorage.getItem("sv_username") || "");
@@ -26,7 +16,6 @@ export default function SteamVaultCompanion() {
   const [timerActive, setTimerActive] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(RESET_SECONDS);
   const [timerComplete, setTimerComplete] = useState(false);
-  const [tipIndex, setTipIndex] = useState(0);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [alarmRinging, setAlarmRinging] = useState(false);
   const timerRef = useRef(null);
@@ -209,10 +198,7 @@ export default function SteamVaultCompanion() {
     setRuns([]);
   };
 
-  useEffect(() => {
-    const t = setInterval(() => setTipIndex(i => (i + 1) % STEAM_TIPS.length), 8000);
-    return () => clearInterval(t);
-  }, []);
+
 
   useEffect(() => {
     if (timerActive && timerSeconds > 0) {
@@ -373,8 +359,6 @@ export default function SteamVaultCompanion() {
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
         .steam { animation: steam 3s ease-in-out infinite; }
         @keyframes steam { 0%,100%{transform:translateY(0) scaleX(1)} 50%{transform:translateY(-4px) scaleX(1.05)} }
-        .tip-fade { animation: tipfade 0.5s ease; }
-        @keyframes tipfade { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
       `}</style>
 
       {/* Header */}
@@ -400,12 +384,6 @@ export default function SteamVaultCompanion() {
           </div>
         </div>
 
-      </div>
-
-      {/* Tip bar */}
-      <div style={{ background: "#081d29", borderBottom: "1px solid #183e5233", padding: "8px 20px", display: "flex", alignItems: "center", gap: 8 }}>
-        <span style={{ fontSize: 11, color: "#00ffd2", fontWeight: 600, whiteSpace: "nowrap" }}>💡 TIP</span>
-        <span key={tipIndex} className="tip-fade" style={{ fontSize: 12, color: "#6b93a3" }}>{STEAM_TIPS[tipIndex]}</span>
       </div>
 
       <div style={{ flex: 1, overflow: "hidden", display: "flex" }}>
