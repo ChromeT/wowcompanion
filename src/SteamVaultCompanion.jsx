@@ -501,68 +501,128 @@ export default function SteamVaultCompanion() {
                       <span style={{ marginLeft: "auto", fontSize: 11, color: "#6b93a3", fontFamily: "'JetBrains Mono'" }}>avg {avgPerBucket}/5m</span>
                     </div>
 
-                    {totalThisHour === 0 ? (
-                      <div style={{ textAlign: "center", color: "#6b93a3", fontSize: 12, fontStyle: "italic", padding: "24px 0" }}>
-                        Belum ada run dalam 1 jam terakhir
+                    {/* Bar chart — always rendered */}
+                    <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 80, marginBottom: 6 }}>
+                      {buckets.map((b, i) => {
+                        const heightPct = b.count > 0 ? Math.max(10, (b.count / maxCount) * 100) : 0;
+                        const barColor = b.count === 0 ? "#0d2733"
+                          : b.count >= maxCount ? "#00ffd2"
+                          : i >= BUCKETS - 2 ? "#3dffa3aa"
+                          : "#3dffa355";
+                        const glowColor = b.count >= maxCount ? "0 0 8px #00ffd288" : "none";
+                        return (
+                          <div
+                            key={i}
+                            title={`${b.label}: ${b.count} run`}
+                            style={{
+                              flex: 1,
+                              height: b.count > 0 ? `${heightPct}%` : "4px",
+                              background: barColor,
+                              borderRadius: "3px 3px 0 0",
+                              transition: "height 0.4s ease, background 0.3s",
+                              boxShadow: glowColor,
+                              cursor: "default",
+                              alignSelf: "flex-end",
+                            }}
+                          />
+                        );
+                      })}
+                    </div>
+
+                    {/* X-axis labels */}
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "#6b93a355", fontFamily: "'JetBrains Mono'" }}>
+                      <span>-60m</span>
+                      <span>-45m</span>
+                      <span>-30m</span>
+                      <span>-15m</span>
+                      <span>now</span>
+                    </div>
+
+                    {totalThisHour === 0 && (
+                      <div style={{ textAlign: "center", color: "#6b93a322", fontSize: 10, fontStyle: "italic", marginTop: 6 }}>
+                        belum ada run dalam 1 jam terakhir
                       </div>
-                    ) : (
-                      <>
-                        {/* Bar chart */}
-                        <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 80, marginBottom: 6 }}>
-                          {buckets.map((b, i) => {
-                            const heightPct = b.count > 0 ? Math.max(8, (b.count / maxCount) * 100) : 0;
-                            const isRecent = i >= BUCKETS - 2;
-                            const barColor = b.count === 0 ? "#0d2733"
-                              : b.count >= maxCount ? "#00ffd2"
-                              : isRecent ? "#3dffa3aa"
-                              : "#3dffa355";
-                            const glowColor = b.count >= maxCount ? "0 0 8px #00ffd288" : "none";
-                            return (
-                              <div
-                                key={i}
-                                title={`${b.label}: ${b.count} run`}
-                                style={{
-                                  flex: 1,
-                                  height: b.count > 0 ? `${heightPct}%` : "4px",
-                                  background: barColor,
-                                  borderRadius: "3px 3px 0 0",
-                                  transition: "height 0.4s ease, background 0.3s",
-                                  boxShadow: glowColor,
-                                  cursor: "default",
-                                  alignSelf: "flex-end",
-                                }}
-                              />
-                            );
-                          })}
-                        </div>
-
-                        {/* X-axis labels: hanya tampilkan beberapa */}
-                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "#6b93a355", fontFamily: "'JetBrains Mono'" }}>
-                          <span>-60m</span>
-                          <span>-45m</span>
-                          <span>-30m</span>
-                          <span>-15m</span>
-                          <span>now</span>
-                        </div>
-
-                        {/* Legend */}
-                        <div style={{ marginTop: 14, display: "flex", gap: 12, flexWrap: "wrap" }}>
-                          {[
-                            { color: "#00ffd2", label: "Peak" },
-                            { color: "#3dffa388", label: "Normal" },
-                            { color: "#0d2733", label: "Kosong" },
-                          ].map(({ color, label }) => (
-                            <div key={label} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10, color: "#6b93a3" }}>
-                              <div style={{ width: 10, height: 10, borderRadius: 2, background: color, border: "1px solid #183e52" }} />
-                              {label}
-                            </div>
-                          ))}
-                          <div style={{ marginLeft: "auto", fontSize: 10, color: "#6b93a3" }}>
-                            Total: <span style={{ color: "#00ffd2", fontFamily: "'JetBrains Mono'", fontWeight: 600 }}>{totalThisHour}</span> run
-                          </div>
-                        </div>
-                      </>
                     )}
+
+                    {/* Legend */}
+                    <div style={{ marginTop: 14, display: "flex", gap: 12 }}>
+                      {[
+                        { color: "#00ffd2", label: "Peak" },
+                        { color: "#3dffa388", label: "Normal" },
+                        { color: "#0d2733", label: "Kosong" },
+                      ].map(({ color, label }) => (
+                        <div key={label} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10, color: "#6b93a3" }}>
+                          <div style={{ width: 10, height: 10, borderRadius: 2, background: color, border: "1px solid #183e52" }} />
+                          {label}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Totals + Estimasi */}
+                    {(() => {
+                      const sessionRuns = sessionStart
+                        ? [...runs].filter(r => r.id >= sessionStart).sort((a, b) => a.id - b.id)
+                        : [];
+                      const sessionRunCount = sessionRuns.length;
+
+                      // Hitung avg gap antar run (cycle time)
+                      let totalGapSec = 0;
+                      for (let i = 1; i < sessionRuns.length; i++) {
+                        totalGapSec += (sessionRuns[i].id - sessionRuns[i - 1].id) / 1000;
+                      }
+                      const gapCount = sessionRuns.length - 1;
+                      const avgCycleSec = gapCount > 0 ? Math.round(totalGapSec / gapCount) : 0;
+                      const estDungeonSec = Math.max(0, avgCycleSec - RESET_SECONDS);
+                      const efficiencyPct = avgCycleSec > 0 ? Math.round((estDungeonSec / avgCycleSec) * 100) : 0;
+
+                      const fmtSec = s => {
+                        if (s <= 0) return "--:--";
+                        const m = Math.floor(s / 60);
+                        const sec = s % 60;
+                        return `${m}:${sec.toString().padStart(2, '0')}`;
+                      };
+
+                      const hasEstimate = gapCount >= 1;
+
+                      return (
+                        <>
+                          {/* Run counts */}
+                          <div style={{ marginTop: 12, paddingTop: 10, borderTop: "1px solid #183e5244", display: "flex", gap: 0 }}>
+                            {[
+                              { label: "/ jam", value: totalThisHour, color: hourlyCapped ? "#ff8400" : "#00ffd2" },
+                              { label: "/ sesi", value: sessionRunCount, color: sessionStart ? "#3dffa3" : "#6b93a355" },
+                              { label: "lifetime", value: totalRuns, color: "#6b93a355" },
+                            ].map((item, i, arr) => (
+                              <div key={i} style={{ flex: 1, borderRight: i < arr.length - 1 ? "1px solid #183e5244" : "none", paddingRight: i < arr.length - 1 ? 12 : 0, paddingLeft: i > 0 ? 12 : 0 }}>
+                                <div style={{ fontSize: 18, fontWeight: 700, color: item.color, fontFamily: "'JetBrains Mono', monospace", lineHeight: 1 }}>{item.value}</div>
+                                <div style={{ fontSize: 9, color: "#6b93a355", marginTop: 3, fontWeight: 600, letterSpacing: "0.03em", textTransform: "uppercase" }}>{item.label}</div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Estimasi timing */}
+                          <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid #183e5244" }}>
+                            <div style={{ fontSize: 9, color: "#6b93a355", fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 8 }}>
+                              EST. TIMING {!hasEstimate && <span style={{ color: "#6b93a322" }}>— butuh ≥ 2 run</span>}
+                            </div>
+                            <div style={{ display: "flex", gap: 0 }}>
+                              {[
+                                { label: "cycle", value: fmtSec(avgCycleSec), title: "Avg waktu 1 siklus (masuk→reset→masuk lagi)", color: "#6b93a3" },
+                                { label: "dungeon", value: fmtSec(estDungeonSec), title: "Est. waktu di dalam dungeon (cycle - 5 min reset)", color: "#3dffa3" },
+                                { label: "efisiensi", value: hasEstimate ? `${efficiencyPct}%` : "--", title: "% waktu aktif di dalam dungeon", color: efficiencyPct >= 60 ? "#3dffa3" : efficiencyPct >= 40 ? "#00ffd2" : "#ff8400" },
+                              ].map((item, i, arr) => (
+                                <div key={i} title={item.title} style={{ flex: 1, borderRight: i < arr.length - 1 ? "1px solid #183e5244" : "none", paddingRight: i < arr.length - 1 ? 10 : 0, paddingLeft: i > 0 ? 10 : 0 }}>
+                                  <div style={{ fontSize: 15, fontWeight: 700, color: hasEstimate ? item.color : "#6b93a322", fontFamily: "'JetBrains Mono', monospace", lineHeight: 1 }}>{item.value}</div>
+                                  <div style={{ fontSize: 9, color: "#6b93a355", marginTop: 3, fontWeight: 600, letterSpacing: "0.03em", textTransform: "uppercase" }}>{item.label}</div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </>
+                      );
+                    })()}
+
+
                   </div>
                 );
               })()}
